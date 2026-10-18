@@ -4,13 +4,11 @@ import { useMemo, useState, type ReactNode } from "react";
 import DOMPurify from "dompurify";
 import type { ViewerProps } from "@/lib/library/types";
 import { cn } from "@/lib/cn";
-import { languageLabel } from "@/lib/highlight/shiki";
 import { parseNotebook, type MimeBundle, type NotebookCell, type NotebookOutput } from "@/lib/notebook/parse";
 import {
   BarSpacer,
   LoadFailed,
   readText,
-  Readout,
   ToolButton,
   useLoad,
   ViewerBar,
@@ -182,14 +180,9 @@ export default function NotebookViewer({ doc }: ViewerProps) {
   }
 
   const notebook = loaded.value;
-  const codeCells = notebook.cells.filter((cell) => cell.kind === "code").length;
   return (
     <ViewerFrame>
       <ViewerBar>
-        <span className="etch shrink-0 px-1.5 text-ink-soft">{languageLabel(notebook.language)}</span>
-        <Readout className="hidden sm:inline">
-          {notebook.cells.length.toLocaleString()} cells · {codeCells.toLocaleString()} code
-        </Readout>
         <BarSpacer />
         <ToolButton label={showCode ? "Hide code" : "Show code"} active={showCode} onClick={() => setShowCode((value) => !value)}>
           Code

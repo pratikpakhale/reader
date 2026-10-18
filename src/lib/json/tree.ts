@@ -4,7 +4,7 @@
  * never the whole document.
  */
 
-export type JsonKey = string | number | undefined;
+type JsonKey = string | number | undefined;
 
 export interface JsonRow {
   path: string;
@@ -22,7 +22,7 @@ export const MAX_ROWS = 1_000_000;
 
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 
-export function childPath(path: string, key: string | number) {
+function childPath(path: string, key: string | number) {
   if (typeof key === "number") return `${path}[${key}]`;
   return IDENTIFIER.test(key) ? `${path}.${key}` : `${path}[${JSON.stringify(key)}]`;
 }
@@ -48,11 +48,6 @@ export interface OpenState {
   forced?: ReadonlySet<string>;
 }
 
-export function isOpen(state: OpenState, path: string, depth: number) {
-  if (state.forced?.has(path)) return true;
-  return depth < state.depth !== state.flipped.has(path);
-}
-
 export function flatten(root: unknown, state: OpenState): { rows: JsonRow[]; truncated: boolean } {
   const rows: JsonRow[] = [];
   const stack: Array<Omit<JsonRow, "open" | "count">> = [{ path: "$", key: undefined, value: root, depth: 0 }];
@@ -63,7 +58,7 @@ export function flatten(root: unknown, state: OpenState): { rows: JsonRow[]; tru
       rows.push({ ...item, open: false });
       continue;
     }
-    const open = isOpen(state, item.path, item.depth);
+    const open = Boolean(state.forced?.has(item.path)) || item.depth < state.depth !== state.flipped.has(item.path);
     rows.push({ ...item, open, count: sizeOf(item.value) });
     if (!open) continue;
     const entries = entriesOf(item.value);
@@ -75,22 +70,11 @@ export function flatten(root: unknown, state: OpenState): { rows: JsonRow[]; tru
   return { rows, truncated: false };
 }
 
-export function primitiveText(value: unknown): string {
-  if (typeof value === "string") return value;
-  return String(value);
-}
-
-export interface SearchResult {
-  hits: string[];
-  /** Every ancestor of a hit, to be held open. */
-  ancestors: Set<string>;
-  capped: boolean;
-}
 
 export const MAX_HITS = 5_000;
 
 /** Keys and primitive values containing `needle`, case-insensitively, in document order. */
-export function search(root: unknown, needle: string): SearchResult {
+export function search(root: unknown, needle: string): { hits: string[]; ancestors: Set<string>; capped: boolean } {
   const wanted = needle.toLowerCase();
   const hits: string[] = [];
   const ancestors = new Set<string>();
@@ -100,7 +84,7 @@ export function search(root: unknown, needle: string): SearchResult {
   while (stack.length) {
     const { path, key, value, trail } = stack.pop()!;
     const keyHit = typeof key === "string" && key.toLowerCase().includes(wanted);
-    const valueHit = !isContainer(value) && primitiveText(value).toLowerCase().includes(wanted);
+    const valueHit = !isContainer(value) && String(value).toLowerCase().includes(wanted);
     if (keyHit || valueHit) {
       hits.push(path);
       for (const ancestor of trail) ancestors.add(ancestor);

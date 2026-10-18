@@ -71,12 +71,11 @@ function Contents({ toc, activeHref, onPick, onClose }: {
         aria-label="Table of contents"
         className="absolute inset-x-0 bottom-0 z-20 flex max-h-[70%] flex-col rounded-t-panel border-t border-line bg-surface shadow-[0_-12px_40px_-12px_rgb(0_0_0/0.3)] sm:static sm:max-h-none sm:w-72 sm:shrink-0 sm:rounded-none sm:border-t-0 sm:border-r sm:shadow-none"
       >
-        <div className="flex h-11 shrink-0 items-center justify-between px-4">
+        <div className="flex h-11 shrink-0 items-center justify-between px-4 sm:hidden">
           <span className="etch text-ink-faint">Contents</span>
-          <ToolButton icon={X} label="Close contents" onClick={onClose} className="sm:hidden" />
+          <ToolButton icon={X} label="Close contents" onClick={onClose} />
         </div>
-        <ol className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-4">
-          {toc.length === 0 && <li className="px-3 py-2 text-[13px] text-ink-soft">This book has no table of contents.</li>}
+        <ol className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-4 sm:pt-3">
           {toc.map((item, index) => {
             const active = activeHref !== undefined && stripHash(item.href) === activeHref;
             return (
@@ -215,21 +214,15 @@ function Reader({ book, storageKey }: { book: Book; storageKey: string }) {
     rendition.current?.themes.select(theme);
   }, [theme]);
 
-  useEffect(() => {
-    fontRef.current = fontSize;
-    rendition.current?.themes.fontSize(`${fontSize}%`);
-    localStorage.setItem(FONT_KEY, String(fontSize));
-  }, [fontSize]);
+  const resizeText = (delta: number) => {
+    const next = Math.min(FONT_MAX, Math.max(FONT_MIN, fontSize + delta));
+    fontRef.current = next;
+    setFontSize(next);
+    rendition.current?.themes.fontSize(`${next}%`);
+    localStorage.setItem(FONT_KEY, String(next));
+  };
 
   const activeHref = location ? stripHash(location.start.href) : undefined;
-  const chapter = useMemo(() => {
-    if (!activeHref) return undefined;
-    const matches = (item: NavItem) => {
-      const href = stripHash(item.href);
-      return href === activeHref || activeHref.endsWith(`/${href}`) || href.endsWith(`/${activeHref}`);
-    };
-    return toc.find(matches)?.label.trim();
-  }, [activeHref, toc]);
   const percent = indexed && location ? Math.round(book.locations.percentageFromCfi(location.start.cfi) * 100) : null;
 
   const pick = (href: string) => {
@@ -240,7 +233,7 @@ function Reader({ book, storageKey }: { book: Book; storageKey: string }) {
   return (
     <>
       <ViewerBar>
-        <ToolButton icon={List} label="Contents" active={tocOpen} onClick={() => setTocOpen((open) => !open)} />
+        <ToolButton icon={List} label="Contents" active={tocOpen} disabled={toc.length === 0} onClick={() => setTocOpen((open) => !open)} />
         <Segmented
           value={flow}
           onChange={setFlow}
@@ -250,23 +243,18 @@ function Reader({ book, storageKey }: { book: Book; storageKey: string }) {
           ]}
         />
         <BarSpacer />
-        <ToolButton icon={AArrowDown} label="Smaller text" disabled={fontSize <= FONT_MIN} onClick={() => setFontSize((size) => Math.max(FONT_MIN, size - 10))} />
+        <ToolButton icon={AArrowDown} label="Smaller text" disabled={fontSize <= FONT_MIN} onClick={() => resizeText(-10)} />
         <Readout className="w-11 text-center">{fontSize}%</Readout>
-        <ToolButton icon={AArrowUp} label="Larger text" disabled={fontSize >= FONT_MAX} onClick={() => setFontSize((size) => Math.min(FONT_MAX, size + 10))} />
+        <ToolButton icon={AArrowUp} label="Larger text" disabled={fontSize >= FONT_MAX} onClick={() => resizeText(10)} />
         <BarDivider />
         <ToolButton icon={ChevronLeft} label="Previous page (←)" disabled={location?.atStart} onClick={() => rendition.current?.prev()} />
+        {percent !== null && <Readout className="min-w-11 text-center">{percent}%</Readout>}
         <ToolButton icon={ChevronRight} label="Next page (→)" disabled={location?.atEnd} onClick={() => rendition.current?.next()} />
       </ViewerBar>
       <div className="relative flex min-h-0 flex-1">
         {tocOpen && <Contents toc={toc} activeHref={activeHref} onPick={pick} onClose={() => setTocOpen(false)} />}
-        <div className="flex min-w-0 flex-1 flex-col bg-sheet dark:bg-sunken">
-          <div className={cn("min-h-0 flex-1", flow === "paginated" && "px-2 py-4 sm:px-8 sm:py-6")}>
-            <div ref={viewport} className="size-full" />
-          </div>
-          <div className="flex h-8 shrink-0 items-center gap-3 border-t border-line px-4 text-[12px] text-ink-soft">
-            <span className="min-w-0 flex-1 truncate">{chapter ?? book.packaging?.metadata?.title}</span>
-            <span className="readout shrink-0 text-[11px]">{percent === null ? "" : `${percent}%`}</span>
-          </div>
+        <div className={cn("min-w-0 flex-1 bg-sheet dark:bg-sunken", flow === "paginated" && "px-2 py-4 sm:px-8 sm:py-6")}>
+          <div ref={viewport} className="size-full" />
         </div>
       </div>
     </>

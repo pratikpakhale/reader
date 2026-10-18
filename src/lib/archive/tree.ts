@@ -7,7 +7,6 @@ export interface TreeNode {
   size: number;
   /** Present on folders only. */
   children?: TreeNode[];
-  files: number;
 }
 
 export interface TreeRow {
@@ -19,7 +18,7 @@ export interface TreeRow {
 export const naturalCompare = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" }).compare;
 
 export function buildTree(entries: ArchiveEntry[]): TreeNode {
-  const root: TreeNode = { name: "", path: "", size: 0, children: [], files: 0 };
+  const root: TreeNode = { name: "", path: "", size: 0, children: [] };
   const folders = new Map<string, TreeNode>([["", root]]);
 
   const folder = (path: string): TreeNode => {
@@ -27,7 +26,7 @@ export function buildTree(entries: ArchiveEntry[]): TreeNode {
     if (existing) return existing;
     const cut = path.lastIndexOf("/");
     const parent = folder(cut < 0 ? "" : path.slice(0, cut));
-    const node: TreeNode = { name: path.slice(cut + 1), path, size: 0, children: [], files: 0 };
+    const node: TreeNode = { name: path.slice(cut + 1), path, size: 0, children: [] };
     parent.children!.push(node);
     folders.set(path, node);
     return node;
@@ -36,7 +35,7 @@ export function buildTree(entries: ArchiveEntry[]): TreeNode {
   for (const entry of entries) {
     const cut = entry.path.lastIndexOf("/");
     const parent = folder(cut < 0 ? "" : entry.path.slice(0, cut));
-    parent.children!.push({ name: entry.path.slice(cut + 1), path: entry.path, size: entry.size, files: 1 });
+    parent.children!.push({ name: entry.path.slice(cut + 1), path: entry.path, size: entry.size });
   }
 
   const settle = (node: TreeNode) => {
@@ -44,7 +43,6 @@ export function buildTree(entries: ArchiveEntry[]): TreeNode {
     node.children.forEach(settle);
     node.children.sort((a, b) => Number(!a.children) - Number(!b.children) || naturalCompare(a.name, b.name));
     node.size = node.children.reduce((sum, child) => sum + child.size, 0);
-    node.files = node.children.reduce((sum, child) => sum + child.files, 0);
   };
   settle(root);
   return root;

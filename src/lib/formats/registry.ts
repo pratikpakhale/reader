@@ -247,32 +247,3 @@ export function formatByMime(mime: string): Format | undefined {
   if (mime.endsWith("+xml")) return BY_ID.get("xml");
   return undefined;
 }
-
-export const FAMILIES: Array<{ id: Family; name: string; blurb: string; highlights: string[] }> = [
-  { id: "documents", name: "Documents", blurb: "Read, search and page through", highlights: ["PDF", "Word", "PowerPoint", "EPUB", "Markdown", "RTF", "Email", "HTML"] },
-  { id: "data", name: "Data", blurb: "Browse tables, trees and databases", highlights: ["Excel", "Numbers", "ODS", "CSV", "JSON", "SQLite", "Parquet", "Jupyter"] },
-  { id: "images", name: "Images", blurb: "Zoom, pan and flip through", highlights: ["JPG", "PNG", "HEIC", "WebP", "AVIF", "GIF", "SVG", "TIFF", "PSD"] },
-  { id: "media", name: "Audio & video", blurb: "Play at any speed", highlights: ["MP4", "MOV", "WebM", "MKV", "MP3", "FLAC", "WAV", "M4A"] },
-  { id: "code", name: "Code & text", blurb: "Highlighted, in 200+ languages", highlights: ["TypeScript", "Python", "Rust", "Go", "Swift", "C++", "YAML", "Logs"] },
-  { id: "archives", name: "Archives", blurb: "Look inside without unpacking", highlights: ["ZIP", "RAR", "7z", "TAR", "GZ", "CBZ", "APK", "ISO"] },
-  { id: "3d", name: "3D models", blurb: "Orbit, zoom and inspect", highlights: ["GLB", "glTF", "STL", "OBJ", "FBX", "PLY", "3MF", "USDZ"] },
-  { id: "fonts", name: "Fonts", blurb: "Specimens and every glyph", highlights: ["TTF", "OTF", "WOFF", "WOFF2", "TTC"] },
-];
-
-export function extensionsFor(family: Family): string[] {
-  return FORMATS.filter((format) => format.family === family).flatMap(
-    (format) => format.extensions,
-  );
-}
-
-/**
- * The picker accepts everything: anything textual opens as text, and anything
- * else opens in the hex view, so there is no file the reader refuses.
- */
-export const ACCEPT_ANY = "*/*";
-
-export function acceptFor(family: Family): string {
-  return extensionsFor(family)
-    .map((extension) => `.${extension}`)
-    .join(",");
-}

@@ -1,7 +1,7 @@
 import { strFromU8, unzipSync } from "fflate";
 
 /** Slides are laid out at this width and scaled by CSS, so text keeps its proportions at any size. */
-export const SLIDE_WIDTH = 960;
+const SLIDE_WIDTH = 960;
 
 export interface Deck {
   width: number;

@@ -1,11 +1,6 @@
 import { parquetMetadataAsync, parquetRead, parquetSchema, type AsyncBuffer, type FileMetaData, type SchemaTree } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
 
-/** Reads only the byte ranges hyparquet asks for, so a 2 GB file costs its footer plus the rows on screen. */
-export function blobBuffer(blob: Blob): AsyncBuffer {
-  return { byteLength: blob.size, slice: (start, end) => blob.slice(start, end).arrayBuffer() };
-}
-
 function leafType(tree: SchemaTree): string {
   const { element } = tree;
   const logical = element.logical_type;
@@ -51,7 +46,8 @@ export interface ParquetFile {
 }
 
 export async function openParquet(blob: Blob): Promise<ParquetFile> {
-  const file = blobBuffer(blob);
+  // Reads only the byte ranges hyparquet asks for, so a 2 GB file costs its footer plus the rows on screen.
+  const file: AsyncBuffer = { byteLength: blob.size, slice: (start, end) => blob.slice(start, end).arrayBuffer() };
   const metadata = await parquetMetadataAsync(file);
   return { file, metadata, schema: parquetSchema(metadata), rowCount: Number(metadata.num_rows) };
 }

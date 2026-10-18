@@ -21,7 +21,7 @@ import {
   Type,
   type LucideIcon,
 } from "lucide-react";
-import type { Family, ViewerId } from "@/lib/formats/registry";
+import type { ViewerId } from "@/lib/formats/registry";
 
 export const VIEWER_ICONS: Record<ViewerId, LucideIcon> = {
   pdf: FileText,
@@ -47,15 +47,4 @@ export const VIEWER_ICONS: Record<ViewerId, LucideIcon> = {
   sqlite: Database,
   parquet: Rows3,
   hex: Binary,
-};
-
-export const FAMILY_ICONS: Record<Family, LucideIcon> = {
-  documents: FileText,
-  data: Database,
-  images: Image,
-  media: Film,
-  code: FileCode,
-  archives: FileArchive,
-  "3d": Box,
-  fonts: Type,
 };

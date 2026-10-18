@@ -54,7 +54,6 @@ export function DataGrid({
   columnTypes,
   sortable = true,
   filter = "",
-  className,
   rowLabel,
 }: {
   columns: string[];
@@ -64,7 +63,6 @@ export function DataGrid({
   sortable?: boolean;
   /** Rows not containing this text (case-insensitive) are hidden. */
   filter?: string;
-  className?: string;
   /** The label in the gutter; defaults to the 1-based row number. */
   rowLabel?: (index: number) => string;
 }) {
@@ -122,7 +120,7 @@ export function DataGrid({
   const selectedValue = selected ? rows[selected.row]?.[selected.column] : undefined;
 
   return (
-    <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
+    <div className="flex min-h-0 flex-1 flex-col">
       <div ref={scroller} className="relative min-h-0 flex-1 overflow-auto overscroll-contain bg-panel text-[13px]">
         <div style={{ width: totalWidth, height: rowVirtualizer.getTotalSize() + headerHeight }} className="relative">
           {/* Header */}

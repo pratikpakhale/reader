@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ImageOff, Paperclip } from "lucide-react";
+import { Paperclip } from "lucide-react";
 import type { Doc, ViewerProps } from "@/lib/library/types";
 import { openNested } from "@/lib/library/store";
 import { formatBytes } from "@/lib/format";
@@ -32,8 +32,7 @@ function HtmlBody({ html }: { html: string }) {
   const [height, setHeight] = useState(240);
 
   useEffect(() => {
-    const element = frame.current;
-    if (!element) return;
+    const element = frame.current!;
     let observer: ResizeObserver | undefined;
     const attach = () => {
       const root = element.contentDocument?.documentElement;
@@ -85,7 +84,7 @@ function Message({ doc, email }: { doc: Doc; email: ParsedEmail }) {
             {email.from.length > 0 && <Field label="From">{email.from.join(", ")}</Field>}
             {email.to.length > 0 && <Field label="To">{email.to.join(", ")}</Field>}
             {email.cc.length > 0 && <Field label="Cc">{email.cc.join(", ")}</Field>}
-            {email.date && !isNaN(email.date.getTime()) && (
+            {email.date && (
               <Field label="Date">
                 <time dateTime={email.date.toISOString()} className="readout text-[12px]">
                   {email.date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
@@ -101,7 +100,7 @@ function Message({ doc, email }: { doc: Doc; email: ParsedEmail }) {
                     type="button"
                     onClick={() => openNested(doc, [{ blob: attachment.blob, name: attachment.name }])}
                     title={`Open ${attachment.name}`}
-                    className="inline-flex h-8 max-w-72 items-center gap-2 rounded-full border border-line bg-panel px-3 text-[12px] text-ink transition-colors hover:border-line-strong hover:bg-panel-hover"
+                    className="inline-flex h-8 max-w-72 items-center gap-2 rounded-lg border border-line bg-panel px-3 text-[12px] text-ink transition-colors hover:border-line-strong hover:bg-panel-hover"
                   >
                     <Paperclip className="size-3.5 shrink-0 text-ink-soft" strokeWidth={1.75} />
                     <span className="truncate font-medium">{attachment.name}</span>
@@ -124,12 +123,6 @@ function Message({ doc, email }: { doc: Doc; email: ParsedEmail }) {
             <p className="px-6 py-10 text-center text-[13px] text-steel-900/50">This message has no body.</p>
           )}
         </div>
-        {email.remoteBlocked && (
-          <p className="mt-3 flex items-center gap-1.5 px-1 text-[12px] text-ink-soft">
-            <ImageOff className="size-3.5" strokeWidth={1.75} />
-            Remote images blocked
-          </p>
-        )}
       </article>
     </div>
   );
@@ -144,7 +137,7 @@ export default function EmailViewer({ doc }: ViewerProps) {
       ) : state.status === "error" ? (
         <LoadFailed error={state.error} what="this message" />
       ) : (
-        <Message key={doc.id} doc={doc} email={state.value} />
+        <Message doc={doc} email={state.value} />
       )}
     </ViewerFrame>
   );

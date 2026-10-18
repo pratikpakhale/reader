@@ -1,6 +1,5 @@
 /**
- * Turns any supported 3D file into a three.js object, with its animations and
- * a count of what's in it. Everything is parsed from bytes already in memory:
+ * Turns any supported 3D file into a three.js object, with its animations. Everything is parsed from bytes already in memory:
  * a reference to a file outside this one can't be followed, so it's either
  * reported up front (glTF) or quietly resolved to nothing (textures in
  * OBJ/FBX/DAE), never fetched.
@@ -21,12 +20,11 @@ import {
 export interface LoadedModel {
   object: Object3D;
   animations: AnimationClip[];
-  stats: { vertices: number; triangles: number; meshes: number };
   /** External files the model referred to and couldn't have. */
   missing: number;
 }
 
-export function neutralMaterial(vertexColors = false) {
+function neutralMaterial(vertexColors = false) {
   return new MeshStandardMaterial({ color: vertexColors ? 0xffffff : 0xb9bec2, roughness: 0.62, metalness: 0.04, vertexColors });
 }
 
@@ -46,19 +44,14 @@ function externalReferences(json: { buffers?: Array<{ uri?: string }>; images?: 
   ).length;
 }
 
-function count(object: Object3D): LoadedModel["stats"] {
-  const stats = { vertices: 0, triangles: 0, meshes: 0 };
+function hasGeometry(object: Object3D) {
+  let found = false;
   object.traverse((child) => {
-    if (!(child instanceof Mesh || child instanceof Points)) return;
-    const geometry = child.geometry as BufferGeometry;
-    const vertices = geometry.getAttribute("position")?.count ?? 0;
-    stats.vertices += vertices;
-    if (child instanceof Mesh) {
-      stats.meshes += 1;
-      stats.triangles += Math.floor((geometry.index?.count ?? vertices) / 3);
+    if ((child instanceof Mesh || child instanceof Points) && (child.geometry as BufferGeometry).getAttribute("position")?.count) {
+      found = true;
     }
   });
-  return stats;
+  return found;
 }
 
 /** OBJ without its .mtl arrives flat and shiny; the studio material reads better. */
@@ -167,7 +160,6 @@ export async function loadModel(blob: Blob, name: string): Promise<LoadedModel> 
       throw new Error(`.${extension} isn't a 3D format this reader knows.`);
   }
 
-  const stats = count(object);
-  if (!stats.vertices) throw new Error("The file parsed, but there's no geometry in it.");
-  return { object, animations, stats, missing };
+  if (!hasGeometry(object)) throw new Error("The file parsed, but there's no geometry in it.");
+  return { object, animations, missing };
 }

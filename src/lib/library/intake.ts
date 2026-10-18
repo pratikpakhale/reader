@@ -13,15 +13,11 @@ export function openFiles(files: Iterable<File | Incoming> | null | undefined) {
   if (list.length > 0) void useLibrary.getState().open(list);
 }
 
-/**
- * Opens the system picker from code. Created per call so `accept` can narrow
- * to one family, and so there is no hidden input to keep in the tree.
- */
-export function pickFiles(accept = "") {
+/** Opens the system picker from code, so there is no hidden input to keep in the tree. */
+export function pickFiles() {
   const input = document.createElement("input");
   input.type = "file";
   input.multiple = true;
-  if (accept) input.accept = accept;
   input.addEventListener("change", () => openFiles(input.files), { once: true });
   input.click();
 }
@@ -34,7 +30,7 @@ async function readEntry(entry: FileSystemEntry, out: Incoming[]): Promise<void>
     const file = await new Promise<File>((resolve, reject) =>
       (entry as FileSystemFileEntry).file(resolve, reject),
     );
-    out.push({ blob: file, name: file.name, path: entry.fullPath.replace(/^\//, ""), lastModified: file.lastModified });
+    out.push({ blob: file, name: file.name, path: entry.fullPath.replace(/^\//, "") });
     return;
   }
   if (entry.isDirectory) {

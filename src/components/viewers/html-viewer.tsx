@@ -60,9 +60,6 @@ export default function HtmlViewer({ doc }: ViewerProps) {
     <ViewerFrame>
       <ViewerBar>
         {toggle}
-        <span className="etch hidden shrink-0 px-2 text-ink-faint sm:inline" title="Pages can't fetch anything from the network here">
-          Remote content blocked
-        </span>
         <BarSpacer />
         <ToolButton
           icon={ShieldOff}
@@ -74,16 +71,14 @@ export default function HtmlViewer({ doc }: ViewerProps) {
           <span className="hidden sm:inline">Run scripts</span>
         </ToolButton>
       </ViewerBar>
-      <div className="relative min-h-0 flex-1 bg-sheet">
-        <iframe
-          key={String(scripts)}
-          title={doc.name}
-          srcDoc={loaded.value.text}
-          sandbox={scripts ? "allow-scripts" : ""}
-          referrerPolicy="no-referrer"
-          className="absolute inset-0 size-full border-0 bg-sheet"
-        />
-      </div>
+      <iframe
+        key={String(scripts)}
+        title={doc.name}
+        srcDoc={loaded.value.text}
+        sandbox={scripts ? "allow-scripts" : ""}
+        referrerPolicy="no-referrer"
+        className="min-h-0 w-full flex-1 border-0 bg-sheet"
+      />
     </ViewerFrame>
   );
 }

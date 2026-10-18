@@ -15,7 +15,6 @@ export interface Doc {
   parentId?: string;
   /** Where the doc sat inside its parent archive. */
   path?: string;
-  lastModified?: number;
 }
 
 /** What every viewer is handed. Viewers fill their parent and own their scroll. */
@@ -27,5 +26,4 @@ export interface Incoming {
   blob: Blob;
   name: string;
   path?: string;
-  lastModified?: number;
 }

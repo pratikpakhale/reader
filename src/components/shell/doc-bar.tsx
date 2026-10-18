@@ -1,8 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-import { ChevronDown, Download, Info, Maximize2, PanelLeft, X } from "lucide-react";
-import { formatBytes } from "@/lib/format";
+import { ChevronDown, ChevronRight, Download, PanelLeft, X } from "lucide-react";
 import { useLibrary } from "@/lib/library/store";
 import type { Doc } from "@/lib/library/types";
 import { VIEWER_LABELS, viewChoices, viewerFor } from "@/components/viewers/registry";
@@ -18,71 +16,66 @@ function download(doc: Doc) {
   setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 
-const fullscreenCapable = () => typeof document !== "undefined" && document.fullscreenEnabled;
-
-function Detail({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="grid grid-cols-[72px_1fr] gap-3 px-2.5 py-1.5">
-      <dt className="etch pt-0.5 text-[9px] text-ink-faint">{label}</dt>
-      <dd className="min-w-0 text-[13px] break-words text-ink">{children}</dd>
-    </div>
-  );
-}
-
+/**
+ * One bar per doc: its name, the viewer's own controls (portalled into
+ * `slotRef`), and the actions. On a phone the controls drop to a second row.
+ */
 export function DocBar({
   doc,
   onShelf,
-  stage,
+  slotRef,
 }: {
   doc: Doc;
   onShelf: () => void;
-  stage: React.RefObject<HTMLElement | null>;
+  slotRef: (element: HTMLDivElement | null) => void;
 }) {
   const close = useLibrary((state) => state.close);
   const viewAs = useLibrary((state) => state.viewAs);
   const parent = useLibrary((state) => state.docs.find((d) => d.id === doc.parentId));
-  const canFullscreen = useSyncExternalStore(() => () => {}, fullscreenCapable, () => false);
   const current = viewerFor(doc);
   const choices = viewChoices(doc);
 
   return (
-    <div className="flex h-12 shrink-0 items-center gap-1 border-b border-line bg-panel px-2 sm:gap-2 sm:px-3">
-      <ToolButton icon={PanelLeft} label="Open files" onClick={onShelf} className="lg:hidden" />
-
-      <div className="min-w-0 flex-1 px-1">
-        <p className="truncate text-[14px] leading-tight font-semibold text-ink" title={doc.path ?? doc.name}>
+    <header className="flex shrink-0 flex-wrap items-center border-b border-line bg-panel">
+      <div className="flex h-12 min-w-0 flex-1 items-center gap-1.5 pl-2 sm:pl-4 md:max-w-[38%] md:flex-none md:pr-2">
+        <ToolButton icon={PanelLeft} label="Open files" onClick={onShelf} className="lg:hidden" />
+        {parent && (
+          <>
+            <span className="max-w-32 shrink truncate text-[13px] text-ink-faint max-sm:hidden">{parent.name}</span>
+            <ChevronRight className="size-3.5 shrink-0 text-ink-faint max-sm:hidden" strokeWidth={1.75} />
+          </>
+        )}
+        <h1 className="min-w-0 truncate text-[14px] font-semibold text-ink" title={doc.path ?? doc.name}>
           {doc.name}
-        </p>
-        <p className="etch mt-1 truncate text-[9px] text-ink-faint">
-          {doc.format.label} · <span className="readout">{formatBytes(doc.size)}</span>
-          {parent && <> · in {parent.name}</>}
-        </p>
+        </h1>
       </div>
 
-      {choices.length > 1 && (
-        <Popover
-          trigger={({ toggle, open }) => (
-            <button
-              type="button"
-              onClick={toggle}
-              aria-expanded={open}
-              title="View as"
-              className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-line px-2.5 text-[12px] font-medium text-ink-muted transition-colors hover:border-line-strong hover:text-ink"
-            >
-              <span className="hidden sm:inline">{VIEWER_LABELS[current]}</span>
-              <span className="sm:hidden">View</span>
-              <ChevronDown className="size-3.5" strokeWidth={1.75} />
-            </button>
-          )}
-        >
-          {(dismiss) => (
-            <>
-              <p className="etch px-2.5 pt-2 pb-1.5 text-[9px] text-ink-faint">View as</p>
-              {choices.map((choice) => (
+      <div
+        ref={slotRef}
+        className="order-last flex h-11 min-w-0 basis-full items-center gap-1 overflow-x-auto border-t border-line px-2 [scrollbar-width:none] empty:hidden md:order-none md:h-12 md:flex-1 md:basis-auto md:border-0 md:px-1"
+      />
+
+      <div className="flex h-12 shrink-0 items-center gap-1 pr-2 sm:pr-3">
+        {choices.length > 1 && (
+          <Popover
+            trigger={({ toggle, open }) => (
+              <button
+                type="button"
+                onClick={toggle}
+                aria-expanded={open}
+                title="View as"
+                className="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-[12px] font-medium text-ink-muted transition-colors hover:bg-sunken hover:text-ink"
+              >
+                {VIEWER_LABELS[current]}
+                <ChevronDown className="size-3.5" strokeWidth={1.75} />
+              </button>
+            )}
+          >
+            {(dismiss) =>
+              choices.map((choice) => (
                 <MenuItem
                   key={choice}
                   active={choice === current}
-                  hint={choice === doc.format.viewer ? "detected" : undefined}
                   onClick={() => {
                     viewAs(doc.id, choice === doc.format.viewer ? undefined : choice);
                     dismiss();
@@ -90,49 +83,13 @@ export function DocBar({
                 >
                   {VIEWER_LABELS[choice]}
                 </MenuItem>
-              ))}
-            </>
-          )}
-        </Popover>
-      )}
-
-      <Popover
-        className="w-72"
-        trigger={({ toggle, open }) => <ToolButton icon={Info} label="Details" active={open} onClick={toggle} />}
-      >
-        {() => (
-          <dl className="py-1">
-            <Detail label="Name">{doc.name}</Detail>
-            {doc.path && <Detail label="Path">{doc.path}</Detail>}
-            <Detail label="Kind">{doc.format.label}</Detail>
-            <Detail label="Size">
-              <span className="readout">
-                {formatBytes(doc.size)} · {doc.size.toLocaleString()} bytes
-              </span>
-            </Detail>
-            {doc.blob.type && <Detail label="Type">{doc.blob.type}</Detail>}
-            {doc.lastModified ? (
-              <Detail label="Modified">{new Date(doc.lastModified).toLocaleString()}</Detail>
-            ) : null}
-            {parent && <Detail label="From">{parent.name}</Detail>}
-            <Detail label="Stays">On this device</Detail>
-          </dl>
+              ))
+            }
+          </Popover>
         )}
-      </Popover>
-
-      <ToolButton icon={Download} label="Save a copy" onClick={() => download(doc)} className="max-sm:hidden" />
-      {canFullscreen && (
-        <ToolButton
-          icon={Maximize2}
-          label="Full screen"
-          className="max-sm:hidden"
-          onClick={() => {
-            if (document.fullscreenElement) void document.exitFullscreen();
-            else void stage.current?.requestFullscreen();
-          }}
-        />
-      )}
-      <ToolButton icon={X} label="Close" onClick={() => close(doc.id)} />
-    </div>
+        <ToolButton icon={Download} label="Save a copy" onClick={() => download(doc)} className="max-sm:hidden" />
+        <ToolButton icon={X} label="Close" onClick={() => close(doc.id)} />
+      </div>
+    </header>
   );
 }

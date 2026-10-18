@@ -1,8 +1,6 @@
-export type JsonKind = "json" | "lenient" | "lines";
-
 export interface ParsedJson {
   value: unknown;
-  kind: JsonKind;
+  kind: "json" | "lenient" | "lines";
 }
 
 /**
@@ -10,7 +8,7 @@ export interface ParsedJson {
  * (so error positions still point at the right place) and a comma before a
  * closing bracket is dropped. Strings are skipped over intact.
  */
-export function stripJsonExtras(text: string): string {
+function stripJsonExtras(text: string): string {
   let out = "";
   let from = 0;
   let index = 0;

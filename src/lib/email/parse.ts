@@ -1,7 +1,7 @@
 import PostalMime, { type Address, type Attachment } from "postal-mime";
 import DOMPurify from "dompurify";
 
-export interface EmailAttachment {
+interface EmailAttachment {
   name: string;
   size: number;
   blob: Blob;
@@ -16,7 +16,6 @@ export interface ParsedEmail {
   /** A sanitised, self-contained document for a sandboxed frame. */
   html?: string;
   text?: string;
-  remoteBlocked: boolean;
   attachments: EmailAttachment[];
 }
 
@@ -86,16 +85,12 @@ function collectLocations(node: MimeNode | undefined, into = new Map<string, Res
 function prepareHtml(html: string, resolve: (reference: string) => Resource | undefined) {
   const page = new DOMParser().parseFromString(html, "text/html");
   const used = new Set<Resource>();
-  let remote = false;
 
   const inline = (reference: string) => {
     const resource = resolve(reference.trim());
-    if (resource) {
-      used.add(resource);
-      return dataUrl(resource);
-    }
-    if (REMOTE.test(reference)) remote = true;
-    return undefined;
+    if (!resource) return undefined;
+    used.add(resource);
+    return dataUrl(resource);
   };
   const rewriteCss = (css: string) => css.replace(CSS_URL, (match, _, url: string) => {
     const inlined = inline(url);
@@ -109,8 +104,6 @@ function prepareHtml(html: string, resolve: (reference: string) => Resource | un
       const style = page.createElement("style");
       style.textContent = rewriteCss(new TextDecoder().decode(toBytes(resource.content)));
       link.replaceWith(style);
-    } else if (REMOTE.test(link.getAttribute("href")!)) {
-      remote = true;
     }
   });
   page.querySelectorAll("style").forEach((style) => (style.textContent = rewriteCss(style.textContent ?? "")));
@@ -141,7 +134,7 @@ function prepareHtml(html: string, resolve: (reference: string) => Resource | un
     ? clean.replace(/<head[^>]*>/i, (head) => `${head}${FRAME_CSP}${FRAME_BASE}`)
     : `${FRAME_CSP}${FRAME_BASE}${clean}`;
   // Standards mode, so the page's height is its content's rather than the frame's.
-  return { html: `<!doctype html>${framed}`, used, remote };
+  return { html: `<!doctype html>${framed}`, used };
 }
 
 export async function parseEmail(blob: Blob): Promise<ParsedEmail> {
@@ -169,15 +162,15 @@ export async function parseEmail(blob: Blob): Promise<ParsedEmail> {
     inlined.add(contentToAttachment.get(resource.content));
   });
 
+  const date = email.date ? new Date(email.date) : undefined;
   return {
     subject: email.subject?.trim() || "(no subject)",
     from: formatAddresses(email.from),
     to: formatAddresses(email.to),
     cc: formatAddresses(email.cc),
-    date: email.date ? new Date(email.date) : undefined,
+    date: date && !isNaN(date.getTime()) ? date : undefined,
     html: prepared?.html,
     text: email.text,
-    remoteBlocked: prepared?.remote ?? false,
     attachments: email.attachments
       .filter((attachment) => !inlined.has(attachment))
       .map((attachment, index) => {

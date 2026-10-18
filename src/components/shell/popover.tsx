@@ -55,24 +55,21 @@ export function MenuItem({
   children,
   active,
   onClick,
-  hint,
 }: {
   children: ReactNode;
   active?: boolean;
   onClick: () => void;
-  hint?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] transition-colors",
+        "flex w-full items-center rounded-lg px-2.5 py-2 text-left text-[13px] transition-colors",
         active ? "bg-seal-wash text-seal-ink" : "text-ink hover:bg-panel-hover",
       )}
     >
-      <span className="flex-1">{children}</span>
-      {hint && <span className="etch text-ink-faint">{hint}</span>}
+      {children}
     </button>
   );
 }

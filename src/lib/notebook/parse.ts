@@ -18,9 +18,8 @@ export interface NotebookCell {
   attachments?: Record<string, MimeBundle>;
 }
 
-export interface Notebook {
+interface Notebook {
   language: string;
-  format: number;
   cells: NotebookCell[];
 }
 
@@ -91,19 +90,17 @@ function cell(raw: Json, v3: boolean): NotebookCell {
 
 export function parseNotebook(source: string): Notebook {
   const raw = JSON.parse(source) as Json;
-  const format = Number(raw.nbformat);
   const metadata = (raw.metadata ?? {}) as Json;
   const kernel = (metadata.kernelspec ?? {}) as Json;
   const info = (metadata.language_info ?? {}) as Json;
-  if (format === 3 || Array.isArray(raw.worksheets)) {
+  if (Number(raw.nbformat) === 3 || Array.isArray(raw.worksheets)) {
     const worksheets = (raw.worksheets ?? []) as Json[];
     const rawCells = worksheets.flatMap((sheet) => (sheet.cells ?? []) as Json[]);
     const language = metadata.language ?? rawCells.find((item) => item.cell_type === "code")?.language ?? "python";
-    return { format: 3, language: String(language), cells: rawCells.map((item) => cell(item, true)) };
+    return { language: String(language), cells: rawCells.map((item) => cell(item, true)) };
   }
   if (!Array.isArray(raw.cells)) throw new Error("No cells found — this doesn't look like a Jupyter notebook.");
   return {
-    format: format || 4,
     language: String(kernel.language ?? info.name ?? "python"),
     cells: (raw.cells as Json[]).map((item) => cell(item, false)),
   };

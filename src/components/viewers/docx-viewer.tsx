@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MoveHorizontal, ZoomIn, ZoomOut } from "lucide-react";
 import type { ViewerProps } from "@/lib/library/types";
 import {
@@ -94,7 +94,7 @@ function WordDocument({ doc }: ViewerProps) {
     return () => observer.disconnect();
   }, [ready]);
 
-  const onScroll = useCallback(() => {
+  const onScroll = () => {
     if (!ready || !desk.current) return;
     const middle = desk.current.getBoundingClientRect().top + desk.current.clientHeight / 3;
     let current = 1;
@@ -102,7 +102,7 @@ function WordDocument({ doc }: ViewerProps) {
       if (section.getBoundingClientRect().top <= middle) current = index + 1;
     });
     setPage(current);
-  }, [ready]);
+  };
 
   const stepZoom = (direction: 1 | -1) =>
     setZoom(

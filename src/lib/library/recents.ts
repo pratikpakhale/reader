@@ -19,7 +19,6 @@ export interface Recent {
 const KEEP = 24;
 /** Larger files are listed only while open; storing them would fill the quota. */
 const LARGEST = 150 * 1024 * 1024;
-const PREF = "reader-remember";
 
 // One store per database is all idb-keyval allows, hence two databases.
 let stores: { meta: UseStore; blobs: UseStore } | undefined;
@@ -40,20 +39,6 @@ export function onRecentsChange(listener: () => void) {
 }
 const changed = () => listeners.forEach((listener) => listener());
 
-export function remembering() {
-  try {
-    return localStorage.getItem(PREF) !== "off";
-  } catch {
-    return false;
-  }
-}
-
-export async function setRemembering(on: boolean) {
-  localStorage.setItem(PREF, on ? "on" : "off");
-  if (!on) await forgetAll();
-  changed();
-}
-
 export async function listRecents(): Promise<Recent[]> {
   if (typeof indexedDB === "undefined") return [];
   const all = await entries<string, Recent>(meta());
@@ -61,7 +46,7 @@ export async function listRecents(): Promise<Recent[]> {
 }
 
 export async function remember(docs: Doc[]) {
-  if (!remembering() || typeof indexedDB === "undefined") return;
+  if (typeof indexedDB === "undefined") return;
   try {
     const existing = await listRecents();
     for (const doc of docs) {

@@ -9,7 +9,6 @@ import { columnsOf, listObjects, quoteIdentifier, readPage, runQuery, type DbObj
 import { DataGrid } from "@/components/data-grid";
 import {
   BarDivider,
-  BarSpacer,
   LoadFailed,
   Readout,
   SearchField,
@@ -82,13 +81,12 @@ function DatabaseView({ db, objects }: { db: Database; objects: DbObject[] }) {
           >
             <Icon className="size-3.5 shrink-0 text-ink-faint" strokeWidth={1.75} />
             <span className="min-w-0 flex-1 truncate">{candidate.name}</span>
-            <span className="readout shrink-0 text-[11px] text-ink-faint">
-              {candidate.type === "view" ? "view" : (candidate.rows?.toLocaleString() ?? "—")}
-            </span>
+            {candidate.rows !== undefined && (
+              <span className="readout shrink-0 text-[11px] text-ink-faint">{candidate.rows.toLocaleString()}</span>
+            )}
           </button>
         );
       })}
-      {!objects.length && <p className="px-2 py-3 text-[12px] text-ink-faint">No tables.</p>}
     </nav>
   );
 
@@ -106,10 +104,6 @@ function DatabaseView({ db, objects }: { db: Database; objects: DbObject[] }) {
         />
         <BarDivider />
         <SearchField value={filter} onChange={setFilter} placeholder="Filter rows" />
-        <BarSpacer />
-        <Readout className="hidden sm:inline">
-          {objects.length} {objects.length === 1 ? "object" : "objects"}
-        </Readout>
       </ViewerBar>
       <div className="relative flex min-h-0 flex-1">
         <aside className="hidden w-60 shrink-0 overflow-y-auto border-r border-line bg-surface md:block">{list}</aside>
@@ -131,7 +125,7 @@ function DatabaseView({ db, objects }: { db: Database; objects: DbObject[] }) {
             object ? (
               <TableView key={object.name} db={db} object={object} filter={filter} />
             ) : (
-              <ViewerStatus title="This database has no tables" detail="Try the Query tab." />
+              <ViewerStatus title="This database has no tables" />
             )
           ) : (
             <QueryView db={db} filter={filter} sql={sql} onSql={setSql} />
@@ -194,12 +188,11 @@ function QueryView({
   sql: string;
   onSql: (sql: string) => void;
 }) {
-  const [outcome, setOutcome] = useState<{ result: ResultSet | null; ms: number } | Error | null>(null);
+  const [outcome, setOutcome] = useState<{ result: ResultSet | null } | Error | null>(null);
 
   const run = () => {
-    const started = performance.now();
     try {
-      setOutcome({ result: runQuery(db, sql, QUERY_CAP), ms: performance.now() - started });
+      setOutcome({ result: runQuery(db, sql, QUERY_CAP) });
     } catch (error) {
       setOutcome(error instanceof Error ? error : new Error(String(error)));
     }
@@ -228,19 +221,17 @@ function QueryView({
           <button
             type="button"
             onClick={run}
-            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-fill px-3 text-[13px] font-medium text-on-fill transition-colors hover:bg-fill-hover"
+            title="Run (⌘/Ctrl + Enter)"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-fill px-3 text-[13px] font-medium text-on-fill transition-colors hover:bg-fill-hover"
           >
             <Play className="size-3.5" strokeWidth={1.75} />
             Run
           </button>
-          <span className="etch hidden text-ink-faint sm:inline">⌘/Ctrl + Enter</span>
           <span className="flex-1" />
-          {outcome && !(outcome instanceof Error) && (
+          {outcome && !(outcome instanceof Error) && outcome.result && (
             <Readout>
-              {outcome.result
-                ? `${outcome.result.rows.length.toLocaleString()}${outcome.result.truncated ? "+" : ""} rows · `
-                : ""}
-              {outcome.ms.toFixed(1)} ms
+              {outcome.result.rows.length.toLocaleString()}
+              {outcome.result.truncated ? "+" : ""} rows
             </Readout>
           )}
         </div>
@@ -249,18 +240,15 @@ function QueryView({
             {outcome.message}
           </p>
         )}
-        {outcome && !(outcome instanceof Error) && outcome.result?.truncated && (
-          <p className="text-[12px] text-ink-soft">Showing the first {QUERY_CAP.toLocaleString()} rows. Add a LIMIT to see others.</p>
-        )}
       </div>
       {outcome && !(outcome instanceof Error) ? (
         outcome.result ? (
           <DataGrid columns={outcome.result.columns} rows={outcome.result.rows} filter={filter} />
         ) : (
-          <ViewerStatus title="Done" detail="The statement ran and returned no rows. Changes stay in this tab — the file is never modified." />
+          <ViewerStatus title="No rows returned" />
         )
       ) : (
-        !(outcome instanceof Error) && <ViewerStatus title="Run a query" detail="Read the database with any SQLite SQL." />
+        !(outcome instanceof Error) && <ViewerStatus title="Run a query" />
       )}
     </>
   );

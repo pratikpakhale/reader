@@ -5,7 +5,7 @@ import { extensionOf } from "@/lib/formats/registry";
 import { isKnownLanguage } from "@/lib/highlight/shiki";
 
 /** More text than this is cut short: past it a browser tab runs out of room to hold and lay it out. */
-export const TEXT_LIMIT = 64 * 1024 * 1024;
+const TEXT_LIMIT = 64 * 1024 * 1024;
 
 /**
  * The text of a blob, or its first TEXT_LIMIT bytes cut at a line break, so a

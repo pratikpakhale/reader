@@ -23,7 +23,7 @@ function textOf(node: HastNode): string {
   return (node.children ?? []).map(textOf).join("");
 }
 
-export function slugify(text: string) {
+function slugify(text: string) {
   return text
     .trim()
     .toLowerCase()

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { useActiveDoc, useLibrary } from "@/lib/library/store";
-import { ViewerStatus } from "@/components/viewer-kit";
+import { ToolbarSlot, ViewerStatus } from "@/components/viewer-kit";
 import { DocBar } from "./doc-bar";
 import { DropTarget } from "./drop-target";
 import { IntakeListeners } from "./intake-listeners";
@@ -25,7 +25,9 @@ export function ReaderStage({ landing }: { landing: ReactNode }) {
       {hasDocs ? (
         <Reader />
       ) : opening ? (
-        <div className="flex flex-1 flex-col"><ViewerStatus loading title="Opening" /></div>
+        <div className="flex h-dvh flex-col">
+          <ViewerStatus loading title="Opening" />
+        </div>
       ) : (
         landing
       )}
@@ -36,10 +38,8 @@ export function ReaderStage({ landing }: { landing: ReactNode }) {
 function Reader() {
   const doc = useActiveDoc();
   const [shelfOpen, setShelfOpen] = useState(false);
-  const stage = useRef<HTMLElement>(null);
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
 
-  // The phone shelf is a drawer; it gets out of the way once a doc is chosen,
-  // and Esc dismisses it like any sheet.
   useEffect(() => {
     if (!shelfOpen) return;
     const escape = (event: KeyboardEvent) => event.key === "Escape" && setShelfOpen(false);
@@ -48,14 +48,13 @@ function Reader() {
   }, [shelfOpen]);
 
   return (
-    <main className="flex h-[calc(100dvh-2.75rem)] min-h-0">
-      <aside className="hidden w-64 shrink-0 border-r border-line bg-sunken/60 lg:block">
+    <main className="flex h-dvh min-h-0">
+      <aside className="hidden w-60 shrink-0 border-r border-line bg-sunken/60 lg:block">
         <Shelf />
       </aside>
 
-      {/* Phone and tablet drawer */}
       <div
-        className={cn("fixed inset-0 top-11 z-40 lg:hidden", shelfOpen ? "pointer-events-auto" : "pointer-events-none")}
+        className={cn("fixed inset-0 z-40 lg:hidden", shelfOpen ? "pointer-events-auto" : "pointer-events-none")}
         aria-hidden={!shelfOpen}
       >
         <div
@@ -64,7 +63,7 @@ function Reader() {
         />
         <div
           className={cn(
-            "absolute inset-y-0 left-0 w-[min(20rem,86vw)] border-r border-line bg-surface shadow-2xl transition-transform duration-250 ease-out",
+            "absolute inset-y-0 left-0 w-[min(18rem,86vw)] border-r border-line bg-surface shadow-2xl transition-transform duration-250 ease-out",
             shelfOpen ? "translate-x-0" : "-translate-x-full",
           )}
           inert={!shelfOpen}
@@ -73,16 +72,13 @@ function Reader() {
         </div>
       </div>
 
-      <section ref={stage} className="flex min-w-0 flex-1 flex-col bg-surface">
-        {doc ? (
-          <>
-            <DocBar doc={doc} stage={stage} onShelf={() => setShelfOpen(true)} />
-            <div className="relative min-h-0 flex-1">
-              <ViewerHost doc={doc} />
-            </div>
-          </>
-        ) : (
-          <ViewerStatus title="Choose a file from the shelf" />
+      <section className="flex min-w-0 flex-1 flex-col bg-surface">
+        {doc && (
+          <ToolbarSlot.Provider value={slot}>
+            <DocBar doc={doc} onShelf={() => setShelfOpen(true)} slotRef={setSlot} />
+            {/* Waits for the slot so viewer controls mount once, in place. */}
+            <div className="relative min-h-0 flex-1">{slot && <ViewerHost doc={doc} />}</div>
+          </ToolbarSlot.Provider>
         )}
       </section>
     </main>

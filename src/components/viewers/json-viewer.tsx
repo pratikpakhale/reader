@@ -3,14 +3,13 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, ChevronUp, Copy, Link2 } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, Copy, Link2, type LucideIcon } from "lucide-react";
 import type { ViewerProps } from "@/lib/library/types";
 import { cn } from "@/lib/cn";
 import { extensionOf } from "@/lib/formats/registry";
 import { parseJson, type ParsedJson } from "@/lib/json/parse";
-import { flatten, isContainer, MAX_HITS, search, type JsonRow, type OpenState } from "@/lib/json/tree";
+import { flatten, isContainer, MAX_HITS, MAX_ROWS, search, sizeOf, type JsonRow, type OpenState } from "@/lib/json/tree";
 import {
-  BarDivider,
   BarSpacer,
   LoadFailed,
   readText,
@@ -42,10 +41,6 @@ async function copy(text: string, what: string) {
   }
 }
 
-function plural(count: number, one: string, many: string) {
-  return `${count.toLocaleString()} ${count === 1 ? one : many}`;
-}
-
 /** A one-line glimpse of a value, the way a console prints a collapsed object. */
 function glimpse(value: unknown, budget = 80): string {
   if (typeof value === "string") return JSON.stringify(value.length > budget ? `${value.slice(0, budget)}…` : value);
@@ -64,8 +59,7 @@ function glimpse(value: unknown, budget = 80): string {
     parts.push(part);
     used += part.length + 2;
   }
-  const size = isArray ? value.length : Object.keys(value).length;
-  if (parts.length < size && parts.at(-1) !== "…") parts.push("…");
+  if (parts.length < sizeOf(value) && parts.at(-1) !== "…") parts.push("…");
   return isArray ? `[${parts.join(", ")}]` : `{${parts.join(", ")}}`;
 }
 
@@ -74,6 +68,23 @@ function Value({ value }: { value: unknown }) {
   if (typeof value === "number") return <span className="text-ink">{String(value)}</span>;
   if (typeof value === "boolean") return <span className="font-medium text-ink-muted">{String(value)}</span>;
   return <span className="text-ink-faint italic">null</span>;
+}
+
+function CopyButton({ icon: Icon, label, onClick }: { icon: LucideIcon; label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
+      className="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-ink-soft transition-colors hover:bg-sunken hover:text-ink"
+    >
+      <Icon className="size-3.5" strokeWidth={1.75} />
+    </button>
+  );
 }
 
 function Row({
@@ -116,7 +127,10 @@ function Row({
         row.open ? (
           <span className="text-ink-faint">
             {isArray ? "[" : "{"}
-            <span className="etch ml-1.5 text-[9px]">{plural(row.count!, isArray ? "item" : "key", isArray ? "items" : "keys")}</span>
+            <span className="etch ml-1.5 text-[9px]">
+              {row.count!.toLocaleString()} {isArray ? "item" : "key"}
+              {row.count === 1 ? "" : "s"}
+            </span>
           </span>
         ) : (
           <span className="min-w-0 truncate text-ink-soft">
@@ -127,6 +141,16 @@ function Row({
       ) : (
         <span className="min-w-0 truncate">
           <Value value={row.value} />
+        </span>
+      )}
+      {selected && (
+        <span className="sticky right-1 ml-auto flex shrink-0 gap-0.5 pl-2">
+          <CopyButton icon={Link2} label="Copy path" onClick={() => copy(row.path, "path")} />
+          <CopyButton
+            icon={Copy}
+            label="Copy value"
+            onClick={() => copy(typeof row.value === "string" ? row.value : JSON.stringify(row.value, null, 2), "value")}
+          />
         </span>
       )}
     </div>
@@ -167,12 +191,6 @@ function Tree({ parsed, text, size }: { parsed: ParsedJson; text: string; size: 
     overscan: 16,
   });
 
-  const reveal = (path: string | undefined) => {
-    if (!path) return;
-    const index = rows.findIndex((row) => row.path === path);
-    if (index >= 0) virtualizer.scrollToIndex(index, { align: "auto" });
-  };
-
   useEffect(() => {
     if (!currentPath) return;
     const index = rows.findIndex((row) => row.path === currentPath);
@@ -196,15 +214,13 @@ function Tree({ parsed, text, size }: { parsed: ParsedJson; text: string; size: 
     });
   };
 
-  const selectedRow = useMemo(() => rows.find((row) => row.path === selected), [rows, selected]);
-
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const index = rows.findIndex((row) => row.path === selected);
     const move = (to: number) => {
-      const target = rows[Math.max(0, Math.min(rows.length - 1, to))];
-      if (!target) return;
-      setSelected(target.path);
-      reveal(target.path);
+      const target = Math.max(0, Math.min(rows.length - 1, to));
+      if (!rows[target]) return;
+      setSelected(rows[target].path);
+      virtualizer.scrollToIndex(target, { align: "auto" });
     };
     const row = rows[index];
     switch (event.key) {
@@ -249,23 +265,11 @@ function Tree({ parsed, text, size }: { parsed: ParsedJson; text: string; size: 
 
   if (mode === "raw") return <CodeView text={raw} language={kind === "lines" ? "jsonl" : "json"} leading={modeToggle} />;
 
-  const rootSummary = isContainer(value)
-    ? Array.isArray(value)
-      ? plural(value.length, kind === "lines" ? "record" : "item", kind === "lines" ? "records" : "items")
-      : plural(Object.keys(value).length, "key", "keys")
-    : typeof value;
-
   return (
     <ViewerFrame>
       <ViewerBar>
         {modeToggle}
-        <Readout className="hidden sm:inline">{rootSummary}</Readout>
-        {kind === "lines" && <span className="etch hidden shrink-0 px-1 text-ink-faint md:inline">JSON Lines</span>}
-        {kind === "lenient" && (
-          <span className="etch hidden shrink-0 px-1 text-ink-faint md:inline" title="Comments and trailing commas were set aside">
-            Lenient
-          </span>
-        )}
+        {truncated && <Readout className="text-ink-faint">First {MAX_ROWS.toLocaleString()} rows</Readout>}
         <BarSpacer />
         <SearchField value={query} onChange={onQuery} onEnter={(back) => step(back ? -1 : 1)} placeholder="Find keys or values" />
         {found && (
@@ -279,9 +283,6 @@ function Tree({ parsed, text, size }: { parsed: ParsedJson; text: string; size: 
             <ToolButton icon={ChevronDown} label="Next match (Enter)" disabled={!found.hits.length} onClick={() => step(1)} />
           </>
         )}
-        <BarDivider />
-        <ToolButton icon={ChevronsUpDown} label="Expand all" onClick={() => setOpen({ depth: Infinity, flipped: new Set() })} />
-        <ToolButton icon={ChevronsDownUp} label="Collapse all" onClick={() => setOpen({ depth: 1, flipped: new Set() })} />
       </ViewerBar>
 
       <div
@@ -311,30 +312,6 @@ function Tree({ parsed, text, size }: { parsed: ParsedJson; text: string; size: 
         </div>
       </div>
 
-      <div className="flex h-9 shrink-0 items-center gap-2 border-t border-line bg-surface pr-1.5 pl-3">
-        {selectedRow ? (
-          <>
-            <span className="readout min-w-0 flex-1 truncate text-[12px] text-ink-muted" title={selectedRow.path}>
-              {selectedRow.path}
-            </span>
-            <ToolButton icon={Link2} label="Copy path" onClick={() => copy(selectedRow.path, "path")} />
-            <ToolButton
-              icon={Copy}
-              label="Copy value"
-              onClick={() =>
-                copy(
-                  typeof selectedRow.value === "string" ? selectedRow.value : JSON.stringify(selectedRow.value, null, 2),
-                  "value",
-                )
-              }
-            />
-          </>
-        ) : (
-          <span className="flex-1 truncate text-[12px] text-ink-faint">
-            {truncated ? "Showing the first 1,000,000 rows — collapse some to see the rest" : "Select a row to copy its path or value"}
-          </span>
-        )}
-      </div>
     </ViewerFrame>
   );
 }

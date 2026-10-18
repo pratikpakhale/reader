@@ -7,10 +7,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
-  Columns2,
   ListTree,
   PanelLeft,
-  RotateCw,
   Search,
   ZoomIn,
   ZoomOut,
@@ -172,7 +170,6 @@ export default function PdfViewer({ doc }: ViewerProps) {
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [matches, setMatches] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
-  const [spread, setSpread] = useState(false);
 
   useEffect(() => {
     let disposed = false;
@@ -357,7 +354,7 @@ export default function PdfViewer({ doc }: ViewerProps) {
             <button
               type="button"
               onClick={toggle}
-              className="readout inline-flex h-8 w-16 shrink-0 items-center justify-center rounded-full text-[12px] text-ink-muted hover:bg-line/60 hover:text-ink"
+              className="readout inline-flex h-8 w-16 shrink-0 items-center justify-center rounded-lg text-[12px] text-ink-muted hover:bg-sunken hover:text-ink"
             >
               {scaleLabel}
             </button>
@@ -379,22 +376,6 @@ export default function PdfViewer({ doc }: ViewerProps) {
           }
         </Popover>
         <ToolButton icon={ZoomIn} label="Zoom in" onClick={() => zoom(1.2)} />
-        <BarDivider />
-        <ToolButton
-          icon={RotateCw}
-          label="Rotate"
-          onClick={() => withViewer((viewer) => (viewer.pagesRotation = (viewer.pagesRotation + 90) % 360))}
-        />
-        <ToolButton
-          icon={Columns2}
-          label="Two pages"
-          active={spread}
-          className="max-sm:hidden"
-          onClick={() => {
-            withViewer((viewer) => (viewer.spreadMode = spread ? 0 : 1));
-            setSpread(!spread);
-          }}
-        />
         <BarSpacer />
         {searching ? (
           <div ref={searchBox} className="flex shrink-0 items-center gap-1">
@@ -491,14 +472,14 @@ function PasswordPrompt({ name, retry, onSubmit }: { name: string; retry: boolea
           onChange={(event) => setPassword(event.target.value)}
           placeholder="Password"
           className={cn(
-            "mt-5 h-10 w-full rounded-full border bg-surface px-4 text-sm text-ink outline-none focus:border-ink-soft",
+            "mt-5 h-10 w-full rounded-lg border bg-surface px-4 text-sm text-ink outline-none focus:border-ink-soft",
             retry ? "border-breach" : "border-line-strong",
           )}
         />
         {retry && <p className="mt-2 text-[12px] text-breach">That password didn’t work.</p>}
         <button
           type="submit"
-          className="mt-4 h-10 w-full rounded-full bg-fill text-sm font-medium text-on-fill transition-colors hover:bg-fill-hover"
+          className="mt-4 h-10 w-full rounded-lg bg-fill text-sm font-medium text-on-fill transition-colors hover:bg-fill-hover"
         >
           Unlock
         </button>

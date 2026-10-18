@@ -10,9 +10,7 @@ import {
   Color,
   DirectionalLight,
   GridHelper,
-  Group,
   Mesh,
-  MeshStandardMaterial,
   PCFShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
@@ -32,9 +30,6 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
 export interface Stage {
-  setWireframe(on: boolean): void;
-  setGround(on: boolean): void;
-  setAutoRotate(on: boolean): void;
   /** Plays a clip by index, or pauses with null. */
   play(clip: number | null): void;
   resetView(): void;
@@ -104,7 +99,6 @@ export function createStage(container: HTMLElement, model: Object3D, clips: Anim
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
-  controls.autoRotateSpeed = 1.6;
   controls.minDistance = radius / 100;
   controls.maxDistance = radius * 50;
 
@@ -136,29 +130,26 @@ export function createStage(container: HTMLElement, model: Object3D, clips: Anim
   floor.receiveShadow = true;
   const gridSize = Math.pow(10, Math.ceil(Math.log10(radius * 4)));
   let grid: GridHelper | null = null;
-  const ground = new Group();
-  ground.add(floor);
+  scene.add(floor);
 
   const paintTheme = () => {
     scene.background = cssColor("--sunken");
     if (grid) {
-      ground.remove(grid);
+      scene.remove(grid);
       grid.dispose();
     }
     grid = new GridHelper(gridSize, 20, cssColor("--line-strong"), cssColor("--line"));
     grid.position.y = -radius / 2000;
-    ground.add(grid);
+    scene.add(grid);
   };
   paintTheme();
-  scene.add(ground);
 
   const mixer = clips.length ? new AnimationMixer(model) : null;
   let action: AnimationAction | null = null;
   let playing = false;
 
   // Render on demand: a frame is requested when something changes, and the
-  // loop keeps itself alive only while damping, auto-rotation or an
-  // animation is still moving.
+  // loop keeps itself alive only while damping or an animation is still moving.
   let frame = 0;
   let last = 0;
   const render = (time: number) => {
@@ -169,7 +160,7 @@ export function createStage(container: HTMLElement, model: Object3D, clips: Anim
     if (playing) mixer?.update(delta);
     renderer.render(scene, camera);
     // controls.update() may already have asked for the next frame via "change".
-    if (moving || playing || controls.autoRotate) frame ||= requestAnimationFrame(render);
+    if (moving || playing) frame ||= requestAnimationFrame(render);
     else if (!frame) last = 0;
   };
   const invalidate = () => {
@@ -194,21 +185,6 @@ export function createStage(container: HTMLElement, model: Object3D, clips: Anim
   theme.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
   return {
-    setWireframe(on) {
-      for (const material of materialsOf(model)) {
-        if ("wireframe" in material) (material as MeshStandardMaterial).wireframe = on;
-      }
-      invalidate();
-    },
-    setGround(on) {
-      ground.visible = on;
-      key.castShadow = on;
-      invalidate();
-    },
-    setAutoRotate(on) {
-      controls.autoRotate = on;
-      invalidate();
-    },
     play(index) {
       if (!mixer) return;
       if (index === null) {
@@ -236,7 +212,7 @@ export function createStage(container: HTMLElement, model: Object3D, clips: Anim
       mixer?.uncacheRoot(model);
       scene.remove(model);
       disposeObject(model);
-      disposeObject(ground);
+      disposeObject(floor);
       grid?.dispose();
       environment.dispose();
       pmrem.dispose();

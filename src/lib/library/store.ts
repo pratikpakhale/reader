@@ -16,13 +16,12 @@ interface Library {
   close: (id: string) => void;
   closeAll: () => void;
   activate: (id: string) => void;
-  step: (delta: 1 | -1) => void;
   viewAs: (id: string, viewer: ViewerId | undefined) => void;
 }
 
 function toIncoming(file: File | Incoming): Incoming {
   return file instanceof File
-    ? { blob: file, name: file.name, lastModified: file.lastModified }
+    ? { blob: file, name: file.name }
     : file;
 }
 
@@ -42,7 +41,7 @@ function lineage(docs: Doc[], id: string): Set<string> {
   return ids;
 }
 
-export const useLibrary = create<Library>()((set, get) => ({
+export const useLibrary = create<Library>()((set) => ({
   docs: [],
   activeId: null,
   opening: 0,
@@ -61,7 +60,6 @@ export const useLibrary = create<Library>()((set, get) => ({
           format: await detect(file.blob, file.name),
           parentId,
           path: file.path,
-          lastModified: file.lastModified,
         })),
       );
 
@@ -129,14 +127,6 @@ export const useLibrary = create<Library>()((set, get) => ({
   closeAll: () => set({ docs: [], activeId: null }),
 
   activate: (id) => set({ activeId: id }),
-
-  step: (delta) => {
-    const { docs, activeId } = get();
-    if (docs.length < 2) return;
-    const index = docs.findIndex((doc) => doc.id === activeId);
-    const next = docs[(index + delta + docs.length) % docs.length];
-    set({ activeId: next.id });
-  },
 
   viewAs: (id, viewer) =>
     set((state) => ({

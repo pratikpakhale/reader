@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type RefObject } from "react";
+import { useEffect, useState, type RefObject } from "react";
 
 const MAX_MATCHES = 5000;
 const HIGHLIGHT = "reader-search";
@@ -17,7 +17,7 @@ export const SEARCH_HIGHLIGHT_CSS = `
 `;
 
 /** Every case-insensitive occurrence of `query` in the text under `root`, including ones that span elements. */
-export function findRanges(root: Node, query: string): Range[] {
+function findRanges(root: Node, query: string): Range[] {
   const needle = query.toLocaleLowerCase();
   if (!needle) return [];
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
@@ -66,26 +66,19 @@ export function useTextSearch(root: RefObject<HTMLElement | null>) {
   const [ranges, setRanges] = useState<Range[]>([]);
   const [index, setIndex] = useState(0);
 
-  const setQuery = useCallback(
-    (next: string) => {
-      setQueryState(next);
-      setRanges(root.current && next.trim() ? findRanges(root.current, next.trim()) : []);
-      setIndex(0);
-    },
-    [root],
-  );
+  const setQuery = (next: string) => {
+    setQueryState(next);
+    setRanges(root.current && next.trim() ? findRanges(root.current, next.trim()) : []);
+    setIndex(0);
+  };
 
-  const step = useCallback(
-    (backwards = false) => {
-      if (ranges.length === 0) return;
-      setIndex((current) => (current + (backwards ? ranges.length - 1 : 1)) % ranges.length);
-    },
-    [ranges.length],
-  );
+  const step = (backwards = false) => {
+    if (ranges.length === 0) return;
+    setIndex((current) => (current + (backwards ? ranges.length - 1 : 1)) % ranges.length);
+  };
 
   useEffect(() => {
-    if (typeof CSS === "undefined" || !("highlights" in CSS)) return;
-    if (ranges.length === 0) return;
+    if (!("highlights" in CSS) || ranges.length === 0) return;
     CSS.highlights.set(HIGHLIGHT, new Highlight(...ranges));
     CSS.highlights.set(CURRENT, new Highlight(ranges[index]));
     return () => {

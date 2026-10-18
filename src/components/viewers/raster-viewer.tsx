@@ -86,10 +86,7 @@ function PsdView({ blob, name }: { blob: Blob; name: string }) {
   const { layers } = state.value;
   const info = layers.length ? (
     <>
-      <ToolButton icon={Layers} label="Layers" active={showLayers} onClick={() => setShowLayers((open) => !open)}>
-        <span className="hidden sm:inline">Layers</span>
-        <span className="readout text-[11px] opacity-70">{layers.length}</span>
-      </ToolButton>
+      <ToolButton icon={Layers} label="Layers" active={showLayers} onClick={() => setShowLayers((open) => !open)} />
       <BarDivider />
     </>
   ) : undefined;
@@ -110,7 +107,6 @@ function LayerList({ layers }: { layers: PsdLayer[] }) {
       aria-label="Layers"
       className="absolute inset-y-0 right-0 z-10 w-64 max-w-[80%] overflow-y-auto border-l border-line bg-surface py-2 shadow-xl sm:static sm:shadow-none"
     >
-      <p className="etch px-3 pb-2 text-ink-faint">Layers · read only</p>
       {layers.map((layer, index) => (
         <div
           key={index}

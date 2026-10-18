@@ -3,14 +3,13 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { Font } from "fontkit";
-import { Grid3x3, Info, Type, X } from "lucide-react";
+import { Grid3x3, Type, X } from "lucide-react";
 import type { Doc, ViewerProps } from "@/lib/library/types";
 import { cn } from "@/lib/cn";
-import { describe, displayName, extractFromCollection, featureName, isCollection, type FontFacts } from "@/lib/fonts/inspect";
+import { describe, displayName, extractFromCollection, isCollection, type FontFacts } from "@/lib/fonts/inspect";
 import {
   BarSpacer,
   LoadFailed,
-  Readout,
   SearchField,
   Segmented,
   ToolButton,
@@ -20,10 +19,9 @@ import {
   ViewerStatus,
 } from "@/components/viewer-kit";
 
-type Tab = "specimen" | "glyphs" | "info";
+type Tab = "specimen" | "glyphs";
 
 const PANGRAM = "Sphinx of black quartz, judge my vow.";
-const WATERFALL = [12, 14, 16, 20, 24, 32, 40, 48, 64, 72, 96];
 const CELL = 76;
 
 function hex(codePoint: number) {
@@ -83,7 +81,6 @@ function FontBody({ doc, bytes, fonts, collection }: { doc: Doc; bytes: Uint8Arr
           options={[
             { value: "specimen", label: "Specimen", icon: Type },
             { value: "glyphs", label: "Glyphs", icon: Grid3x3 },
-            { value: "info", label: "Info", icon: Info },
           ]}
         />
         {collection && (
@@ -91,7 +88,7 @@ function FontBody({ doc, bytes, fonts, collection }: { doc: Doc; bytes: Uint8Arr
             value={index}
             onChange={(event) => setIndex(Number(event.target.value))}
             aria-label="Font in collection"
-            className="h-8 max-w-48 shrink-0 truncate rounded-full border border-line bg-panel px-3 text-[13px] text-ink outline-none focus:border-ink-soft"
+            className="h-8 max-w-48 shrink-0 truncate rounded-lg border border-line bg-panel px-3 text-[13px] text-ink outline-none focus:border-ink-soft"
           >
             {fonts.map((candidate, position) => (
               <option key={position} value={position}>
@@ -101,19 +98,14 @@ function FontBody({ doc, bytes, fonts, collection }: { doc: Doc; bytes: Uint8Arr
           </select>
         )}
         {tab === "glyphs" && <SearchField value={query} onChange={setQuery} placeholder="Find a glyph" />}
-        <BarSpacer />
-        <Readout className="hidden sm:inline">{facts.fullName}</Readout>
-        <Readout>{facts.codePoints.length.toLocaleString()} chars</Readout>
       </ViewerBar>
       {face.status === "loading" && <ViewerStatus loading title="Loading font" />}
       {face.status === "error" && <LoadFailed error={face.error} what="this font in the browser" />}
       {face.status === "ready" &&
         (tab === "specimen" ? (
           <Specimen key={index} family={face.value} facts={facts} />
-        ) : tab === "glyphs" ? (
-          <Glyphs key={index} family={face.value} font={font} facts={facts} query={query} />
         ) : (
-          <FontInfo facts={facts} />
+          <Glyphs key={index} family={face.value} font={font} facts={facts} query={query} />
         ))}
     </>
   );
@@ -230,17 +222,6 @@ function Specimen({ family, facts }: { family: string; facts: FontFacts }) {
         </div>
       )}
 
-      <div className="border-t border-line px-4 py-6 sm:px-8">
-        <p className="etch mb-3 text-ink-faint">Waterfall</p>
-        {WATERFALL.map((px) => (
-          <div key={px} className="flex items-baseline gap-4 border-b border-line/60 py-1.5 last:border-b-0">
-            <span className="readout w-10 shrink-0 text-right text-[11px] text-ink-faint">{px}</span>
-            <p style={{ ...style, fontSize: px }} className="min-w-0 truncate leading-tight">
-              {sample || defaultSample(facts)}
-            </p>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
@@ -301,7 +282,7 @@ function Glyphs({ family, font, facts, query }: { family: string; font: Font; fa
     <div className="relative flex min-h-0 flex-1">
       <div ref={scroller} className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-panel">
         {visible.length === 0 ? (
-          <ViewerStatus title="No glyphs match" detail="Search by character, code point (U+00E9) or glyph name." />
+          <ViewerStatus title="No glyphs match" />
         ) : (
           <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
             {virtualizer.getVirtualItems().map((row) => (
@@ -346,80 +327,11 @@ function Glyphs({ family, font, facts, query }: { family: string; font: Font; fa
           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 px-4 py-3 text-[12px]">
             <dt className="etch self-center text-ink-faint">Name</dt>
             <dd className="readout truncate text-ink">{glyph.name || "—"}</dd>
-            <dt className="etch self-center text-ink-faint">Glyph id</dt>
-            <dd className="readout text-ink">{glyph.id}</dd>
-            <dt className="etch self-center text-ink-faint">Advance</dt>
-            <dd className="readout text-ink">
-              {glyph.advanceWidth} / {font.unitsPerEm}
-            </dd>
             <dt className="etch self-center text-ink-faint">Character</dt>
             <dd className="readout text-ink select-all">{String.fromCodePoint(selected)}</dd>
           </dl>
         </aside>
       )}
-    </div>
-  );
-}
-
-function FontInfo({ facts }: { facts: FontFacts }) {
-  return (
-    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-      <div className="mx-auto grid max-w-3xl gap-8 px-4 py-6 sm:px-8">
-        <dl className="grid grid-cols-[minmax(7rem,auto)_1fr] gap-x-6 gap-y-2.5 text-[13px]">
-          {facts.facts.map(([label, value]) => (
-            <div key={label} className="contents">
-              <dt className="etch pt-1 text-ink-faint">{label}</dt>
-              <dd className="min-w-0 break-words whitespace-pre-line text-ink">{value}</dd>
-            </div>
-          ))}
-        </dl>
-
-        {facts.scripts.length > 0 && (
-          <section>
-            <h3 className="etch mb-3 text-ink-faint">Scripts</h3>
-            <ul className="flex flex-wrap gap-1.5">
-              {facts.scripts.map((script) => (
-                <li key={script.name} className="rounded-full border border-line bg-panel px-2.5 py-1 text-[12px] text-ink">
-                  {script.name} <span className="readout text-[11px] text-ink-faint">{script.count.toLocaleString()}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {facts.axes.length > 0 && (
-          <section>
-            <h3 className="etch mb-3 text-ink-faint">Variation axes</h3>
-            <ul className="grid gap-1.5 text-[13px]">
-              {facts.axes.map((axis) => (
-                <li key={axis.tag} className="flex items-baseline gap-3">
-                  <span className="readout w-12 text-[12px] text-ink">{axis.tag}</span>
-                  <span className="text-ink-muted">{axis.name}</span>
-                  <span className="readout ml-auto text-[12px] text-ink-soft">
-                    {axis.min} – {axis.max} · default {axis.default}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        <section>
-          <h3 className="etch mb-3 text-ink-faint">OpenType features</h3>
-          {facts.features.length ? (
-            <ul className="grid gap-x-6 gap-y-1.5 text-[13px] sm:grid-cols-2">
-              {facts.features.map((tag) => (
-                <li key={tag} className="flex items-baseline gap-3">
-                  <span className="readout w-12 shrink-0 text-[12px] text-ink">{tag}</span>
-                  <span className="truncate text-ink-muted">{featureName(tag)}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-[13px] text-ink-soft">None.</p>
-          )}
-        </section>
-      </div>
     </div>
   );
 }

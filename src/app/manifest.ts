@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { FAMILIES, extensionsFor } from "@/lib/formats/registry";
+import { FORMATS } from "@/lib/formats/registry";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE } from "@/lib/site";
 
 /**
@@ -9,7 +9,7 @@ import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE } from "@/lib/site";
  */
 export default function manifest(): MetadataRoute.Manifest {
   const accept: Record<string, string[]> = {
-    "application/octet-stream": FAMILIES.flatMap((family) => extensionsFor(family.id)).map((ext) => `.${ext}`),
+    "application/octet-stream": FORMATS.flatMap((format) => format.extensions.map((extension) => `.${extension}`)),
   };
   return {
     name: `${SITE_NAME} — ${SITE_TITLE}`,

@@ -8,7 +8,6 @@ import { cellText, DataGrid } from "@/components/data-grid";
 import {
   BarSpacer,
   LoadFailed,
-  Readout,
   SearchField,
   ToolButton,
   useLoad,
@@ -66,32 +65,6 @@ function SheetGrid({ book, index, filter, firstRowHeader }: {
   );
 }
 
-function SheetTabs({ names, active, onSelect }: { names: string[]; active: number; onSelect: (index: number) => void }) {
-  return (
-    <div
-      role="tablist"
-      aria-label="Sheets"
-      className="flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-t border-line bg-surface px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-    >
-      {names.map((name, index) => (
-        <button
-          key={`${index}-${name}`}
-          type="button"
-          role="tab"
-          aria-selected={index === active}
-          onClick={() => onSelect(index)}
-          className={cn(
-            "h-7 max-w-48 shrink-0 truncate rounded-full px-3 text-[12px] font-medium transition-colors",
-            index === active ? "bg-fill text-on-fill" : "text-ink-muted hover:bg-line/60 hover:text-ink",
-          )}
-        >
-          {name}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function Spreadsheet({ doc }: ViewerProps) {
   const book = useLoad((signal) => openWorkbook(doc.blob, signal), [doc.id]);
   const [active, setActive] = useState(0);
@@ -115,16 +88,33 @@ function Spreadsheet({ doc }: ViewerProps) {
         >
           <span className="hidden sm:inline">Header row</span>
         </ToolButton>
-        {names.length > 1 && (
-          <Readout className="hidden sm:inline">
-            Sheet {active + 1} of {names.length}
-          </Readout>
-        )}
       </ViewerBar>
       <div className="flex min-h-0 flex-1 flex-col">
         <SheetGrid book={book.value} index={active} filter={filter} firstRowHeader={firstRowHeader} />
       </div>
-      {names.length > 0 && <SheetTabs names={names} active={active} onSelect={setActive} />}
+      {names.length > 1 && (
+        <div
+          role="tablist"
+          aria-label="Sheets"
+          className="flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-t border-line bg-surface px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {names.map((name, index) => (
+            <button
+              key={`${index}-${name}`}
+              type="button"
+              role="tab"
+              aria-selected={index === active}
+              onClick={() => setActive(index)}
+              className={cn(
+                "h-7 max-w-48 shrink-0 truncate rounded-lg px-3 text-[12px] font-medium transition-colors",
+                index === active ? "bg-fill text-on-fill" : "text-ink-muted hover:bg-sunken hover:text-ink",
+              )}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+      )}
     </>
   );
 }

@@ -79,42 +79,38 @@ function ArchiveBody({ doc, archive }: { doc: Doc; archive: OpenedArchive }) {
 
   const [busy, setBusy] = useState<string | null>(null);
 
+  const askPassword = (error: PasswordError, retry?: string) => {
+    setLocked(true);
+    setPrompt({ retry, error: error.wrong ? error.message : undefined });
+  };
+
   const extract = useCallback(
     async (path: string) => {
       try {
         return await archive.extract(path);
       } catch (error) {
-        if (error instanceof PasswordError) {
-          setLocked(true);
-          setPrompt({ error: error.wrong ? error.message : undefined });
-        }
+        if (error instanceof PasswordError) askPassword(error);
         throw error;
       }
     },
     [archive],
   );
 
-  const open = useCallback(
-    async (path: string) => {
-      setBusy(path);
-      try {
-        const blob = await archive.extract(path);
-        await openNested(doc, [{ blob, name: baseName(path), path }]);
-      } catch (error) {
-        if (error instanceof PasswordError) {
-          setLocked(true);
-          setPrompt({ retry: path, error: error.wrong ? error.message : undefined });
-        } else {
-          toast.error(`Couldn't extract ${baseName(path)}`, {
-            description: error instanceof Error ? error.message : String(error),
-          });
-        }
-      } finally {
-        setBusy(null);
-      }
-    },
-    [archive, doc],
-  );
+  const open = async (path: string) => {
+    setBusy(path);
+    try {
+      const blob = await archive.extract(path);
+      await openNested(doc, [{ blob, name: baseName(path), path }]);
+    } catch (error) {
+      if (error instanceof PasswordError) askPassword(error, path);
+      else
+        toast.error(`Couldn't extract ${baseName(path)}`, {
+          description: error instanceof Error ? error.message : String(error),
+        });
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const unlock = async (password: string) => {
     try {
@@ -201,12 +197,12 @@ function PasswordPrompt({
         placeholder="Password"
         aria-label="Archive password"
         onChange={(event) => setPassword(event.target.value)}
-        className="h-8 w-44 min-w-0 rounded-full border border-line bg-surface px-3 text-[13px] text-ink outline-none placeholder:text-ink-faint focus:border-ink-soft"
+        className="h-8 w-44 min-w-0 rounded-lg border border-line bg-surface px-3 text-[13px] text-ink outline-none placeholder:text-ink-faint focus:border-ink-soft"
       />
       <button
         type="submit"
         disabled={!password || working}
-        className="inline-flex h-8 items-center gap-1.5 rounded-full bg-fill px-3 text-[13px] font-medium text-on-fill transition-colors hover:bg-fill-hover disabled:opacity-40"
+        className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-fill px-3 text-[13px] font-medium text-on-fill transition-colors hover:bg-fill-hover disabled:opacity-40"
       >
         {working && <LoaderCircle className="size-3.5 animate-spin" strokeWidth={1.75} />}
         Unlock
@@ -283,17 +279,17 @@ function FileTree({
           <button
             type="button"
             onClick={onUnlockRequest}
-            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[12px] text-ink-muted hover:bg-line/60 hover:text-ink"
+            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[12px] text-ink-muted hover:bg-sunken hover:text-ink"
           >
             <LockKeyhole className="size-3.5" strokeWidth={1.75} />
             <span className="hidden sm:inline">Locked</span>
           </button>
         )}
-        <Readout>
-          {searching ? `${rows.length.toLocaleString()} of ` : ""}
-          {tree.files.toLocaleString()} {tree.files === 1 ? "file" : "files"}
-          <span className="hidden sm:inline"> · {formatBytes(tree.size)}</span>
-        </Readout>
+        {searching && (
+          <Readout>
+            {rows.length.toLocaleString()} {rows.length === 1 ? "match" : "matches"}
+          </Readout>
+        )}
       </ViewerBar>
       {banner}
       {rows.length === 0 ? (
@@ -351,11 +347,6 @@ function FileTree({
                     <span className="text-ink">{node.name}</span>
                     {folderPath && <span className="ml-2 text-[12px] text-ink-faint">{folderPath}</span>}
                   </span>
-                  {folder && (
-                    <span className="readout hidden shrink-0 text-[11px] text-ink-faint sm:inline">
-                      {node.files.toLocaleString()} {node.files === 1 ? "item" : "items"}
-                    </span>
-                  )}
                   <span className="readout w-16 shrink-0 text-right text-[11px] text-ink-soft">{formatBytes(node.size)}</span>
                 </button>
               );

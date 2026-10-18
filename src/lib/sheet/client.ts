@@ -19,7 +19,13 @@ export function openWorkbook(blob: Blob, signal: AbortSignal): Promise<Workbook>
   const sheets = new Map<number, Promise<SheetData>>();
 
   return new Promise((resolve, reject) => {
-    worker.addEventListener("error", (event) => reject(new Error(event.message || "The spreadsheet parser crashed")));
+    worker.addEventListener("error", (event) => {
+      const error = new Error(event.message || "The spreadsheet parser crashed");
+      reject(error);
+      // A crash after opening would otherwise leave a sheet loading forever.
+      pending.forEach(({ reject }) => reject(error));
+      pending.clear();
+    });
     worker.addEventListener("message", (event: MessageEvent<WorkerResponse>) => {
       const message = event.data;
       if (message.type === "opened") {

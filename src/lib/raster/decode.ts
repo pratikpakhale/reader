@@ -22,8 +22,7 @@ function toPng(pixels: Uint8Array | Uint8ClampedArray, width: number, height: nu
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("This browser has no 2D canvas.");
+  const context = canvas.getContext("2d")!;
   const clamped = new Uint8ClampedArray(pixels.buffer as ArrayBuffer, pixels.byteOffset, width * height * 4);
   context.putImageData(new ImageData(clamped, width, height), 0, 0);
   return new Promise((resolve, reject) =>
@@ -86,7 +85,7 @@ function to8Bit(data: Uint8Array | Uint8ClampedArray | Uint16Array | Float32Arra
   return out;
 }
 
-export async function decodePsd(buffer: ArrayBuffer): Promise<{ blob: Blob; width: number; height: number; layers: PsdLayer[] }> {
+export async function decodePsd(buffer: ArrayBuffer): Promise<{ blob: Blob; layers: PsdLayer[] }> {
   const { readPsd } = await import("ag-psd");
   await yieldToPaint();
   const psd = readPsd(buffer, { useImageData: true, skipLayerImageData: true, skipThumbnail: true, skipLinkedFilesData: true });
@@ -102,5 +101,5 @@ export async function decodePsd(buffer: ArrayBuffer): Promise<{ blob: Blob; widt
     }
   };
   walk(psd.children, 0);
-  return { blob: await toPng(to8Bit(psd.imageData.data), psd.width, psd.height), width: psd.width, height: psd.height, layers };
+  return { blob: await toPng(to8Bit(psd.imageData.data), psd.width, psd.height), layers };
 }

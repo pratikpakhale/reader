@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import type { ViewerProps } from "@/lib/library/types";
 import { cn } from "@/lib/cn";
-import { formatBytes } from "@/lib/format";
 import { BarSpacer, Readout, SearchField, ViewerBar, ViewerFrame, ViewerStatus } from "@/components/viewer-kit";
 
 const ROW = 22;
@@ -199,7 +198,7 @@ export default function HexViewer({ doc }: ViewerProps) {
   if (size === 0) {
     return (
       <ViewerFrame>
-        <ViewerStatus title="This file is empty" detail="There are no bytes to show." />
+        <ViewerStatus title="This file is empty" />
       </ViewerFrame>
     );
   }
@@ -225,8 +224,25 @@ export default function HexViewer({ doc }: ViewerProps) {
   return (
     <ViewerFrame>
       <ViewerBar>
-        <Readout>{formatBytes(size)}</Readout>
-        <Readout className="hidden text-ink-faint sm:inline">{size.toLocaleString()} bytes</Readout>
+        {selected !== undefined && (
+          <>
+            <Readout className="text-ink">
+              0x{hex(selected, width)} <span className="text-ink-faint">({selected.toLocaleString()})</span>
+            </Readout>
+            <Readout>
+              <span className="etch mr-1.5 text-[9px] text-ink-faint">u8</span>
+              {show(u8)}
+            </Readout>
+            <Readout>
+              <span className="etch mr-1.5 text-[9px] text-ink-faint">u16 le</span>
+              {show(u16)}
+            </Readout>
+            <Readout>
+              <span className="etch mr-1.5 text-[9px] text-ink-faint">u32 le</span>
+              {show(u32)}
+            </Readout>
+          </>
+        )}
         <BarSpacer />
         <SearchField value={jump} onChange={setJump} onEnter={goTo} placeholder="Go to offset (0x… or decimal)" />
       </ViewerBar>
@@ -322,29 +338,6 @@ export default function HexViewer({ doc }: ViewerProps) {
         </div>
       </div>
 
-      <div className="flex h-9 shrink-0 items-center gap-1 overflow-x-auto border-t border-line bg-surface px-2 [scrollbar-width:none]">
-        {selected === undefined ? (
-          <span className="px-1.5 text-[12px] text-ink-faint">Click a byte to inspect it · arrow keys move</span>
-        ) : (
-          <>
-            <Readout className="text-ink">
-              0x{hex(selected, width)} <span className="text-ink-faint">({selected.toLocaleString()})</span>
-            </Readout>
-            <Readout>
-              <span className="etch mr-1.5 text-[9px] text-ink-faint">u8</span>
-              {show(u8)}
-            </Readout>
-            <Readout>
-              <span className="etch mr-1.5 text-[9px] text-ink-faint">u16 le</span>
-              {show(u16)}
-            </Readout>
-            <Readout>
-              <span className="etch mr-1.5 text-[9px] text-ink-faint">u32 le</span>
-              {show(u32)}
-            </Readout>
-          </>
-        )}
-      </div>
     </ViewerFrame>
   );
 }

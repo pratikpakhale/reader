@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, Instrument_Sans, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "sonner";
-import { SiteHeader } from "@/components/site-header";
 import {
   KEYWORDS,
   SITE_DESCRIPTION,
@@ -94,14 +93,13 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className="flex min-h-dvh flex-col">
-        <SiteHeader />
         <div className="relative z-10 flex flex-1 flex-col">{children}</div>
         <Toaster
           position="bottom-center"
           toastOptions={{
             classNames: {
               toast:
-                "!bg-steel-950 !text-steel-50 !border-white/10 !rounded-full !font-sans !text-[13px]",
+                "!bg-steel-950 !text-steel-50 !border-white/10 !rounded-lg !font-sans !text-[13px]",
               description: "!text-white/60",
             },
           }}

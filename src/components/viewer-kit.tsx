@@ -5,7 +5,16 @@
  * column: an optional ViewerBar of controls, then a body that owns its scroll.
  */
 
-import { useEffect, useMemo, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ButtonHTMLAttributes,
+  type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
 import { LoaderCircle, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -13,16 +22,15 @@ export function ViewerFrame({ children, className }: { children: ReactNode; clas
   return <div className={cn("absolute inset-0 flex flex-col", className)}>{children}</div>;
 }
 
-/** The control strip at the top of a viewer. Scrolls sideways on a phone rather than wrapping. */
-export function ViewerBar({ children, className }: { children: ReactNode; className?: string }) {
+/** Where the reader's top bar wants viewer controls drawn, so a doc gets one bar instead of two. */
+export const ToolbarSlot = createContext<HTMLElement | null>(null);
+
+/** A viewer's controls. Rendered into the reader's top bar when there is one. */
+export function ViewerBar({ children }: { children: ReactNode }) {
+  const slot = useContext(ToolbarSlot);
+  if (slot) return createPortal(children, slot);
   return (
-    <div
-      className={cn(
-        "flex h-11 shrink-0 items-center gap-1 overflow-x-auto border-b border-line bg-surface px-2 sm:px-3",
-        "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-        className,
-      )}
-    >
+    <div className="flex h-12 shrink-0 items-center gap-1 overflow-x-auto border-b border-line px-3 [scrollbar-width:none]">
       {children}
     </div>
   );
@@ -60,9 +68,9 @@ export function ToolButton({
       aria-label={children ? undefined : label}
       aria-pressed={active}
       className={cn(
-        "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full text-[13px] font-medium transition-colors",
+        "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg text-[13px] font-medium transition-colors",
         children ? "px-3" : "w-8",
-        active ? "bg-fill text-on-fill" : "text-ink-muted hover:bg-line/60 hover:text-ink",
+        active ? "bg-sunken text-ink" : "text-ink-muted hover:bg-sunken hover:text-ink",
         "disabled:pointer-events-none disabled:opacity-35",
         className,
       )}
@@ -87,7 +95,7 @@ export function Segmented<T extends string>({
   className?: string;
 }) {
   return (
-    <div className={cn("inline-flex h-8 shrink-0 items-center rounded-full border border-line bg-panel p-0.5", className)}>
+    <div className={cn("inline-flex h-8 shrink-0 items-center rounded-lg bg-sunken p-0.5", className)}>
       {options.map((option) => {
         const Icon = option.icon;
         return (
@@ -98,8 +106,8 @@ export function Segmented<T extends string>({
             aria-pressed={value === option.value}
             onClick={() => onChange(option.value)}
             className={cn(
-              "inline-flex h-full items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium whitespace-nowrap transition-colors",
-              value === option.value ? "bg-fill text-on-fill" : "text-ink-muted hover:text-ink",
+              "inline-flex h-full items-center gap-1.5 rounded-md px-2.5 text-[12px] font-medium whitespace-nowrap transition-colors",
+              value === option.value ? "bg-panel text-ink shadow-[0_1px_2px_rgb(0_0_0/0.12)]" : "text-ink-muted hover:text-ink",
             )}
           >
             {Icon && <Icon className="size-3.5" strokeWidth={1.75} />}
@@ -141,7 +149,7 @@ export function SearchField({
         if (event.key === "Escape") onChange("");
       }}
       className={cn(
-        "h-8 w-40 min-w-0 shrink rounded-full border border-line bg-panel px-3 text-[13px] text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-ink-soft sm:w-56",
+        "h-8 w-40 min-w-0 shrink rounded-lg border border-line bg-panel px-3 text-[13px] text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-ink-soft sm:w-56",
         className,
       )}
     />

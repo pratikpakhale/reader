@@ -37,7 +37,6 @@ function letter(index: number) {
 interface Parsed {
   rows: Cell[][];
   width: number;
-  delimiter: string;
   capped: boolean;
 }
 
@@ -46,7 +45,6 @@ function parse(doc: ViewerProps["doc"], signal: AbortSignal, onProgress: (rows: 
   return new Promise<Parsed>((resolve, reject) => {
     const rows: Cell[][] = [];
     let width = 0;
-    let delimiter = "";
     let capped = false;
     Papa.parse<string[]>(new File([doc.blob], doc.name), {
       delimiter: DELIMITERS[extensionOf(doc.name)] ?? "",
@@ -54,7 +52,6 @@ function parse(doc: ViewerProps["doc"], signal: AbortSignal, onProgress: (rows: 
       chunkSize: 2 * 1024 * 1024,
       chunk: (results, parser) => {
         if (signal.aborted) return parser.abort();
-        delimiter ||= results.meta.delimiter;
         for (const record of results.data) {
           if (rows.length >= MAX_ROWS) {
             capped = true;
@@ -65,13 +62,11 @@ function parse(doc: ViewerProps["doc"], signal: AbortSignal, onProgress: (rows: 
         }
         onProgress(rows.length);
       },
-      complete: () => resolve({ rows, width, delimiter, capped }),
+      complete: () => resolve({ rows, width, capped }),
       error: (error) => reject(error),
     });
   });
 }
-
-const DELIMITER_NAMES: Record<string, string> = { ",": "Comma", "\t": "Tab", ";": "Semicolon", "|": "Pipe" };
 
 export default function TableViewer({ doc }: ViewerProps) {
   const [progress, setProgress] = useState(0);
@@ -119,18 +114,13 @@ export default function TableViewer({ doc }: ViewerProps) {
     );
   }
 
-  const { delimiter, capped } = loaded.value;
+  const { capped } = loaded.value;
   return (
     <ViewerFrame>
       <ViewerBar>
         <ToolButton label="First row is the header" active={header} onClick={() => setHeader((value) => !value)}>
           Header row
         </ToolButton>
-        {delimiter && (
-          <span className="etch hidden shrink-0 px-1.5 text-ink-faint sm:inline">
-            {DELIMITER_NAMES[delimiter] ?? `“${delimiter}”`} separated
-          </span>
-        )}
         {capped && <Readout className="text-ink-faint">First {MAX_ROWS.toLocaleString()} rows</Readout>}
         <BarSpacer />
         <SearchField value={query} onChange={setQuery} placeholder="Filter rows" />

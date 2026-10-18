@@ -38,10 +38,6 @@ function languageInfo(name: string | undefined) {
   return bundledLanguagesInfo.find((info) => info.id === wanted || info.aliases?.includes(wanted));
 }
 
-export function languageLabel(name: string | undefined): string {
-  return languageInfo(name)?.name ?? "Plain text";
-}
-
 export function isKnownLanguage(name: string | undefined): boolean {
   return Boolean(languageInfo(name));
 }

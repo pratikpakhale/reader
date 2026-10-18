@@ -8,7 +8,6 @@ import { readTextCapped } from "@/lib/text/read";
 import {
   BarSpacer,
   LoadFailed,
-  Readout,
   Segmented,
   ToolButton,
   useLoad,
@@ -129,14 +128,12 @@ function Rendered({ text, mode, onMode }: { text: string; mode: Mode; onMode: (m
     <ViewerFrame>
       <ViewerBar>
         <ModeToggle mode={mode} onMode={onMode} />
-        {hasOutline && <Readout className="hidden sm:inline">{headings.length} sections</Readout>}
         <BarSpacer />
         {hasOutline && <ToolButton icon={ListTree} label="Outline" active={sheet} onClick={toggleOutline} />}
       </ViewerBar>
       <div className="relative flex min-h-0 flex-1">
         {hasOutline && aside && (
-          <aside className="hidden w-64 shrink-0 overflow-y-auto border-r border-line bg-surface px-3 py-5 lg:block">
-            <p className="etch mb-3 px-2 text-ink-faint">Outline</p>
+          <aside className="hidden w-64 shrink-0 overflow-y-auto border-r border-line bg-surface px-3 py-4 lg:block">
             <Outline headings={headings} active={active} onPick={pick} />
           </aside>
         )}

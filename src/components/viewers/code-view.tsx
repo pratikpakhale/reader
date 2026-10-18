@@ -2,11 +2,10 @@
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { toast } from "sonner";
-import { AArrowDown, AArrowUp, ChevronDown, ChevronUp, Copy, WrapText } from "lucide-react";
+import { ChevronDown, ChevronUp, WrapText } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { GrammarState } from "shiki/core";
-import { languageLabel, loadLanguage, tokenizeLines, type LineTokens } from "@/lib/highlight/shiki";
+import { loadLanguage, tokenizeLines, type LineTokens } from "@/lib/highlight/shiki";
 import { useTheme } from "@/lib/highlight/theme";
 import { BarDivider, BarSpacer, Readout, SearchField, ToolButton, ViewerBar, ViewerFrame } from "@/components/viewer-kit";
 import { paint, type Mark } from "./code-paint";
@@ -16,7 +15,8 @@ const HIGHLIGHT_LIMIT = 2_000_000;
 /** A line longer than this is broken into continuation rows, so a minified file still scrolls. */
 const SEGMENT = 10_000;
 const MAX_MATCHES = 100_000;
-const FONT_KEY = "reader-code-font";
+const FONT_SIZE = 13;
+const LINE_HEIGHT = 21;
 const NO_TOKENS: LineTokens = new Uint32Array(0);
 const PROSE = new Set(["text", "markdown", "log", "latex"]);
 
@@ -91,7 +91,7 @@ function diffTint(line: string) {
 
 /**
  * The text body every textual viewer falls back to: virtualised lines, a
- * gutter, search, wrap and size. `leading` goes at the start of the bar, so a
+ * gutter, search and wrap. `leading` goes at the start of the bar, so a
  * viewer offering a Source mode can keep its own toggle in reach.
  */
 export function CodeView({
@@ -111,18 +111,12 @@ export function CodeView({
   const searchBox = useRef<HTMLDivElement>(null);
   const rows = useMemo(() => layout(text), [text]);
   const [wrap, setWrap] = useState(() => PROSE.has(language ?? "text") || rows.widest > 2000);
-  const [fontSize, setFontSize] = useState(() => {
-    const stored = Number(localStorage.getItem(FONT_KEY));
-    return stored >= 10 && stored <= 22 ? stored : 13;
-  });
-  const lineHeight = Math.round(fontSize * 1.62);
 
   // Highlighting, one time-slice at a time, so a 2 MB file paints at once and
   // colours in from the top without ever holding the main thread.
   const [highlight, setHighlight] = useState<{ text: string; grammar: string; lines: LineTokens[] } | null>(null);
-  const tooBig = text.length > HIGHLIGHT_LIMIT;
   useEffect(() => {
-    if (tooBig) return;
+    if (text.length > HIGHLIGHT_LIMIT) return;
     let cancelled = false;
     (async () => {
       const grammar = await loadLanguage(language);
@@ -148,7 +142,7 @@ export function CodeView({
     return () => {
       cancelled = true;
     };
-  }, [text, language, rows, tooBig]);
+  }, [text, language, rows]);
   const live = highlight?.text === text ? highlight : null;
 
   const [query, setQuery] = useState("");
@@ -161,20 +155,16 @@ export function CodeView({
     count: rows.starts.length,
     getScrollElement: () => scroller.current,
     estimateSize: (index) => {
-      if (!wrap) return lineHeight;
-      const columns = Math.max(20, ((scroller.current?.clientWidth ?? 800) - 80) / (fontSize * 0.6));
-      return lineHeight * Math.max(1, Math.ceil((rows.ends[index] - rows.starts[index]) / columns));
+      if (!wrap) return LINE_HEIGHT;
+      const columns = Math.max(20, ((scroller.current?.clientWidth ?? 800) - 80) / (FONT_SIZE * 0.6));
+      return LINE_HEIGHT * Math.max(1, Math.ceil((rows.ends[index] - rows.starts[index]) / columns));
     },
     overscan: 20,
   });
 
   useEffect(() => {
     virtualizer.measure();
-  }, [virtualizer, wrap, fontSize]);
-
-  useEffect(() => {
-    localStorage.setItem(FONT_KEY, String(fontSize));
-  }, [fontSize]);
+  }, [virtualizer, wrap]);
 
   const goTo = (index: number) => {
     if (matches.length === 0) return;
@@ -201,28 +191,14 @@ export function CodeView({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const copyAll = async () => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast("Copied to clipboard");
-    } catch {
-      toast("Couldn't copy — the browser refused");
-    }
-  };
-
   const isDiff = live?.grammar === "diff" || language === "diff";
-  const digits = String(rows.lines).length;
-  const gutter = `${digits + 2.5}ch`;
+  const gutter = `${String(rows.lines).length + 2.5}ch`;
   const needleLength = needle.length;
 
   return (
     <ViewerFrame>
       <ViewerBar>
         {leading}
-        {leading && <BarDivider />}
-        <span className="etch hidden shrink-0 px-1.5 text-ink-soft sm:inline">{languageLabel(live?.grammar ?? language)}</span>
-        <Readout>{rows.lines.toLocaleString()} {rows.lines === 1 ? "line" : "lines"}</Readout>
-        {tooBig && <Readout className="hidden text-ink-faint md:inline">Highlighting off for size</Readout>}
         {notice && <Readout className="hidden text-ink-faint md:inline">{notice}</Readout>}
         <BarSpacer />
         <div ref={searchBox} className="contents">
@@ -241,16 +217,13 @@ export function CodeView({
         )}
         <BarDivider />
         <ToolButton icon={WrapText} label="Wrap lines" active={wrap} onClick={() => setWrap((value) => !value)} />
-        <ToolButton icon={AArrowDown} label="Smaller text" disabled={fontSize <= 10} onClick={() => setFontSize((size) => size - 1)} />
-        <ToolButton icon={AArrowUp} label="Larger text" disabled={fontSize >= 22} onClick={() => setFontSize((size) => size + 1)} />
-        <ToolButton icon={Copy} label="Copy all" onClick={copyAll} />
       </ViewerBar>
 
       <div
         ref={scroller}
         tabIndex={0}
         className="relative min-h-0 flex-1 overflow-auto overscroll-contain bg-panel font-mono text-ink outline-none [tab-size:4]"
-        style={{ fontSize, lineHeight: `${lineHeight}px` }}
+        style={{ fontSize: FONT_SIZE, lineHeight: `${LINE_HEIGHT}px` }}
       >
         <div
           className="relative py-2"
@@ -283,7 +256,7 @@ export function CodeView({
                 data-index={item.index}
                 ref={wrap ? virtualizer.measureElement : undefined}
                 className={cn("absolute left-0 flex w-full", isDiff && !continued && diffTint(content))}
-                style={{ top: 8, transform: `translateY(${item.start}px)`, height: wrap ? undefined : lineHeight }}
+                style={{ top: 8, transform: `translateY(${item.start}px)`, height: wrap ? undefined : LINE_HEIGHT }}
               >
                 <span
                   aria-hidden

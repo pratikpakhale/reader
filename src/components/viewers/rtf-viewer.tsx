@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { ViewerProps } from "@/lib/library/types";
-import { BarSpacer, LoadFailed, useLoad, ViewerBar, ViewerFrame, ViewerStatus } from "@/components/viewer-kit";
+import { LoadFailed, useLoad, ViewerBar, ViewerFrame, ViewerStatus } from "@/components/viewer-kit";
 import { SEARCH_HIGHLIGHT_CSS, useTextSearch } from "@/lib/reading/search";
 import { FindControls } from "./docx-search";
 
@@ -84,15 +84,9 @@ function RichText({ doc }: ViewerProps) {
     <>
       <ViewerBar>
         <FindControls search={search} />
-        <BarSpacer />
       </ViewerBar>
       <div className="min-h-0 flex-1 overflow-auto overscroll-contain bg-sunken px-3 py-4 sm:px-6 sm:py-8">
         <style>{SEARCH_HIGHLIGHT_CSS}</style>
-        {state.value.kind === "plain" && (
-          <p className="mx-auto mb-3 max-w-[52rem] text-[12px] text-ink-soft">
-            This file couldn&apos;t be laid out with its formatting, so here is its text.
-          </p>
-        )}
         <div
           ref={sheet}
           className="mx-auto max-w-[52rem] break-words bg-sheet px-6 py-8 text-[15px] leading-relaxed text-steel-900 shadow-[0_1px_3px_rgb(0_0_0/0.12),0_12px_40px_-12px_rgb(0_0_0/0.25)] sm:px-14 sm:py-14"
