@@ -102,14 +102,20 @@ export function createStage(container: HTMLElement, model: Object3D, clips: Anim
   controls.minDistance = radius / 100;
   controls.maxDistance = radius * 50;
 
+  // Framed by the tighter of the two fields of view, so a portrait phone sees
+  // the whole model and not just its middle.
   const home = () => {
-    const distance = radius / Math.sin((camera.fov * Math.PI) / 360);
+    const vertical = (camera.fov * Math.PI) / 180;
+    const horizontal = 2 * Math.atan(Math.tan(vertical / 2) * camera.aspect);
+    const distance = radius / Math.sin(Math.min(vertical, horizontal) / 2);
     camera.position.copy(target).add(new Vector3(0.9, 0.55, 1).normalize().multiplyScalar(distance * 1.05));
     controls.target.copy(target);
     camera.updateProjectionMatrix();
     controls.update();
   };
   home();
+  let framed = true;
+  controls.addEventListener("start", () => (framed = false));
 
   // Studio key light for the shadow; the room environment does the rest.
   const key = new DirectionalLight(0xffffff, 1.2);
@@ -173,7 +179,8 @@ export function createStage(container: HTMLElement, model: Object3D, clips: Anim
     if (!width || !height) return;
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
-    camera.updateProjectionMatrix();
+    if (framed) home();
+    else camera.updateProjectionMatrix();
     invalidate();
   });
   resize.observe(container);
@@ -201,6 +208,7 @@ export function createStage(container: HTMLElement, model: Object3D, clips: Anim
     },
     resetView() {
       home();
+      framed = true;
       invalidate();
     },
     dispose() {

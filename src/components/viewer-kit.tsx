@@ -149,7 +149,7 @@ export function SearchField({
         if (event.key === "Escape") onChange("");
       }}
       className={cn(
-        "h-8 w-40 min-w-0 shrink rounded-lg border border-line bg-panel px-3 text-[13px] text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-ink-soft sm:w-56",
+        "h-8 w-36 shrink-0 rounded-lg border border-line bg-panel px-3 text-[13px] text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-ink-soft sm:w-52",
         className,
       )}
     />

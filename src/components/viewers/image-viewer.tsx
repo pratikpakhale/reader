@@ -1,10 +1,19 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
-import { TransformComponent, TransformWrapper, useControls, useTransformEffect } from "react-zoom-pan-pinch";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  TransformComponent,
+  TransformWrapper,
+  useControls,
+  useTransformEffect,
+  type ReactZoomPanPinchRef,
+} from "react-zoom-pan-pinch";
 import { Maximize, RotateCw, ZoomIn, ZoomOut } from "lucide-react";
 import type { ViewerProps } from "@/lib/library/types";
 import { BarSpacer, Readout, ToolButton, useBlobUrl, ViewerBar, ViewerFrame, ViewerStatus } from "@/components/viewer-kit";
+
+/** Shrinks to fit, but never blows a small image up past its own pixels. */
+const FIT = { maxScale: 1 };
 
 function Controls({ info, onRotate }: { info?: ReactNode; onRotate: () => void }) {
   const { zoomIn, zoomOut, fitToView } = useControls();
@@ -17,7 +26,7 @@ function Controls({ info, onRotate }: { info?: ReactNode; onRotate: () => void }
       <ToolButton icon={ZoomOut} label="Zoom out" onClick={() => zoomOut(0.4)} />
       <Readout className="w-12 text-center">{Math.round(scale * 100)}%</Readout>
       <ToolButton icon={ZoomIn} label="Zoom in" onClick={() => zoomIn(0.4)} />
-      <ToolButton icon={Maximize} label="Fit" onClick={() => fitToView()} />
+      <ToolButton icon={Maximize} label="Fit" onClick={() => fitToView(FIT)} />
       <ToolButton icon={RotateCw} label="Rotate" onClick={onRotate} />
     </ViewerBar>
   );
@@ -30,11 +39,24 @@ function Controls({ info, onRotate }: { info?: ReactNode; onRotate: () => void }
 export function ImageStage({ src, alt, info }: { src: string; alt: string; info?: ReactNode }) {
   const [turn, setTurn] = useState(0);
   const [failed, setFailed] = useState(false);
+  const api = useRef<ReactZoomPanPinchRef>(null);
+  const stage = useRef<HTMLDivElement>(null);
+
+  // Fitting on init happens before the image or the stage has a size, so it
+  // is redone once the picture loads and whenever the stage is resized.
+  useEffect(() => {
+    const element = stage.current;
+    if (!element) return;
+    const observer = new ResizeObserver(() => api.current?.fitToView(FIT));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   if (failed) return <ViewerStatus tone="error" title="This browser can't decode this image" />;
 
   return (
     <TransformWrapper
+      ref={api}
       key={src}
       minScale={0.05}
       maxScale={40}
@@ -46,13 +68,14 @@ export function ImageStage({ src, alt, info }: { src: string; alt: string; info?
       keyboard={{ disabled: false }}
     >
       <Controls info={info} onRotate={() => setTurn((t) => t + 90)} />
-      <div className="relative min-h-0 flex-1 overflow-hidden bg-sunken">
+      <div ref={stage} className="relative min-h-0 flex-1 overflow-hidden bg-sunken">
         <TransformComponent wrapperClass="!size-full" contentClass="!p-6">
           {/* eslint-disable-next-line @next/next/no-img-element -- a blob: URL, not an asset next/image could optimise */}
           <img
             src={src}
             alt={alt}
             draggable={false}
+            onLoad={() => api.current?.fitToView(FIT)}
             onError={() => setFailed(true)}
             style={{ transform: `rotate(${turn}deg)` }}
             className="max-w-none shadow-[0_1px_3px_rgb(0_0_0/0.12),0_12px_40px_-12px_rgb(0_0_0/0.25)] transition-transform duration-300"

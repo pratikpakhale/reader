@@ -8,7 +8,7 @@ import { cn } from "@/lib/cn";
 import { columnsOf, listObjects, quoteIdentifier, readPage, runQuery, type DbObject, type ResultSet } from "@/lib/sqlite/query";
 import { DataGrid } from "@/components/data-grid";
 import {
-  BarDivider,
+  BarSpacer,
   LoadFailed,
   Readout,
   SearchField,
@@ -102,7 +102,7 @@ function DatabaseView({ db, objects }: { db: Database; objects: DbObject[] }) {
             { value: "query", label: "Query", icon: TerminalSquare },
           ]}
         />
-        <BarDivider />
+        <BarSpacer />
         <SearchField value={filter} onChange={setFilter} placeholder="Filter rows" />
       </ViewerBar>
       <div className="relative flex min-h-0 flex-1">
@@ -155,25 +155,25 @@ function TableView({ db, object, filter }: { db: Database; object: DbObject; fil
   const paged = offset > 0 || hasMore;
 
   return (
-    <>
-      <DataGrid
-        columns={page.columns}
-        rows={page.rows}
-        columnTypes={page.columns.map((name) => columns.find((column) => column.name === name)?.type ?? "")}
-        filter={filter}
-        rowLabel={(index) => String(offset + index + 1)}
-      />
-      {paged && (
-        <div className="flex h-9 shrink-0 items-center justify-end gap-1 border-t border-line bg-surface px-2">
-          <ToolButton icon={ChevronLeft} label="Previous rows" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))} />
-          <Readout>
-            {(offset + 1).toLocaleString()}–{end.toLocaleString()}
-            {total !== undefined && ` of ${total.toLocaleString()}`}
-          </Readout>
-          <ToolButton icon={ChevronRight} label="Next rows" disabled={!hasMore} onClick={() => setOffset(offset + PAGE_SIZE)} />
-        </div>
-      )}
-    </>
+    <DataGrid
+      columns={page.columns}
+      rows={page.rows}
+      columnTypes={page.columns.map((name) => columns.find((column) => column.name === name)?.type ?? "")}
+      filter={filter}
+      rowLabel={(index) => String(offset + index + 1)}
+      footerEnd={
+        paged && (
+          <>
+            <ToolButton icon={ChevronLeft} label="Previous rows" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))} />
+            <Readout>
+              {(offset + 1).toLocaleString()}–{end.toLocaleString()}
+              {total !== undefined && ` of ${total.toLocaleString()}`}
+            </Readout>
+            <ToolButton icon={ChevronRight} label="Next rows" disabled={!hasMore} onClick={() => setOffset(offset + PAGE_SIZE)} />
+          </>
+        )
+      }
+    />
   );
 }
 

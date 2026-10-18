@@ -114,8 +114,6 @@ function WordDocument({ doc }: ViewerProps) {
   return (
     <>
       <ViewerBar>
-        {ready && <FindControls search={search} />}
-        <BarSpacer />
         {ready && (
           <>
             <Readout>
@@ -126,6 +124,8 @@ function WordDocument({ doc }: ViewerProps) {
             <Readout className="w-12 text-center">{Math.round(scale * 100)}%</Readout>
             <ToolButton icon={ZoomIn} label="Zoom in" onClick={() => stepZoom(1)} />
             <ToolButton icon={MoveHorizontal} label="Fit width" active={zoom === "fit"} onClick={() => setZoom("fit")} />
+            <BarSpacer />
+            <FindControls search={search} />
           </>
         )}
       </ViewerBar>

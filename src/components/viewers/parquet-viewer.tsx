@@ -6,6 +6,7 @@ import type { ViewerProps } from "@/lib/library/types";
 import { openParquet, readRows, typeName, type ParquetFile } from "@/lib/parquet/read";
 import { DataGrid, type Cell } from "@/components/data-grid";
 import {
+  BarSpacer,
   LoadFailed,
   Readout,
   SearchField,
@@ -65,29 +66,33 @@ function ParquetBody({ parquet, first }: { parquet: ParquetFile; first: Cell[][]
             { value: "schema", label: "Schema", icon: TableProperties },
           ]}
         />
-        {tab === "data" && <SearchField value={filter} onChange={setFilter} placeholder="Filter loaded rows" />}
+        <BarSpacer />
+        {tab === "data" && <SearchField value={filter} onChange={setFilter} placeholder="Filter rows" />}
       </ViewerBar>
       {tab === "data" ? (
-        <>
-          <DataGrid columns={columns} rows={rows} columnTypes={columnTypes} filter={filter} />
-          {rows.length < parquet.rowCount && (
-            <div className="flex h-9 shrink-0 items-center justify-end gap-3 border-t border-line bg-surface px-3">
-              {more instanceof Error && <span className="truncate text-[12px] text-breach">{more.message}</span>}
-              <Readout>
-                {rows.length.toLocaleString()} of {parquet.rowCount.toLocaleString()} loaded
-              </Readout>
-              <button
-                type="button"
-                disabled={more === "loading"}
-                onClick={() => void loadMore()}
-                className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-line bg-panel px-3 text-[12px] font-medium text-ink transition-colors hover:bg-panel-hover disabled:opacity-50"
-              >
-                {more === "loading" && <LoaderCircle className="size-3.5 animate-spin" strokeWidth={1.75} />}
-                Load {Math.min(BATCH, parquet.rowCount - rows.length).toLocaleString()} more
-              </button>
-            </div>
-          )}
-        </>
+        <DataGrid
+          columns={columns}
+          rows={rows}
+          columnTypes={columnTypes}
+          filter={filter}
+          footerEnd={
+            rows.length < parquet.rowCount && (
+              <>
+                {more instanceof Error && <span className="truncate text-[12px] text-breach">{more.message}</span>}
+                <Readout>of {parquet.rowCount.toLocaleString()}</Readout>
+                <button
+                  type="button"
+                  disabled={more === "loading"}
+                  onClick={() => void loadMore()}
+                  className="inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-medium text-ink-muted transition-colors hover:bg-sunken hover:text-ink disabled:opacity-50"
+                >
+                  {more === "loading" && <LoaderCircle className="size-3.5 animate-spin" strokeWidth={1.75} />}
+                  Load more
+                </button>
+              </>
+            )
+          }
+        />
       ) : (
         <SchemaView parquet={parquet} />
       )}

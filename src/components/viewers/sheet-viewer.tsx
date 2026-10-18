@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Heading } from "lucide-react";
 import type { ViewerProps } from "@/lib/library/types";
 import { cn } from "@/lib/cn";
@@ -24,11 +24,12 @@ function columnLetter(index: number) {
   return name;
 }
 
-function SheetGrid({ book, index, filter, firstRowHeader }: {
+function SheetGrid({ book, index, filter, firstRowHeader, tabs }: {
   book: Workbook;
   index: number;
   filter: string;
   firstRowHeader: boolean;
+  tabs: ReactNode;
 }) {
   const state = useLoad(() => book.sheet(index), [book, index]);
 
@@ -48,20 +49,19 @@ function SheetGrid({ book, index, filter, firstRowHeader }: {
   if (state.status === "error") return <LoadFailed error={state.error} what="this sheet" />;
   if (!table || table.columns.length === 0) return <ViewerStatus title="This sheet is empty" />;
   return (
-    <>
-      <DataGrid
-        key={`${index}-${firstRowHeader}`}
-        columns={table.columns}
-        rows={table.rows}
-        filter={filter}
-        rowLabel={(row) => String(row + table.offset)}
-      />
-      {state.value.truncated && (
-        <p className="shrink-0 border-t border-line bg-surface px-3 py-1.5 text-[12px] text-ink-soft">
-          Showing the first {state.value.rows.length.toLocaleString()} rows.
-        </p>
-      )}
-    </>
+    <DataGrid
+      key={`${index}-${firstRowHeader}`}
+      columns={table.columns}
+      rows={table.rows}
+      filter={filter}
+      rowLabel={(row) => String(row + table.offset)}
+      footerStart={tabs}
+      footerEnd={
+        state.value.truncated && (
+          <span className="px-1 text-[12px] text-ink-soft">First {state.value.rows.length.toLocaleString()} rows</span>
+        )
+      }
+    />
   );
 }
 
@@ -75,11 +75,29 @@ function Spreadsheet({ doc }: ViewerProps) {
   if (book.status === "error") return <LoadFailed error={book.error} what="this workbook" />;
   const { names } = book.value;
 
+  const tabs = names.length > 1 && (
+    <div role="tablist" aria-label="Sheets" className="flex min-w-0 shrink items-center gap-0.5 overflow-x-auto [scrollbar-width:none]">
+      {names.map((name, index) => (
+        <button
+          key={`${index}-${name}`}
+          type="button"
+          role="tab"
+          aria-selected={index === active}
+          onClick={() => setActive(index)}
+          className={cn(
+            "h-7 max-w-48 shrink-0 truncate rounded-md px-2.5 text-[12px] font-medium transition-colors",
+            index === active ? "bg-panel text-ink shadow-[0_0_0_1px_var(--line)]" : "text-ink-muted hover:bg-sunken hover:text-ink",
+          )}
+        >
+          {name}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <>
       <ViewerBar>
-        <SearchField value={filter} onChange={setFilter} placeholder="Filter rows" />
-        <BarSpacer />
         <ToolButton
           icon={Heading}
           label="Use first row as header"
@@ -88,33 +106,12 @@ function Spreadsheet({ doc }: ViewerProps) {
         >
           <span className="hidden sm:inline">Header row</span>
         </ToolButton>
+        <BarSpacer />
+        <SearchField value={filter} onChange={setFilter} placeholder="Filter rows" />
       </ViewerBar>
       <div className="flex min-h-0 flex-1 flex-col">
-        <SheetGrid book={book.value} index={active} filter={filter} firstRowHeader={firstRowHeader} />
+        <SheetGrid book={book.value} index={active} filter={filter} firstRowHeader={firstRowHeader} tabs={tabs} />
       </div>
-      {names.length > 1 && (
-        <div
-          role="tablist"
-          aria-label="Sheets"
-          className="flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-t border-line bg-surface px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          {names.map((name, index) => (
-            <button
-              key={`${index}-${name}`}
-              type="button"
-              role="tab"
-              aria-selected={index === active}
-              onClick={() => setActive(index)}
-              className={cn(
-                "h-7 max-w-48 shrink-0 truncate rounded-lg px-3 text-[12px] font-medium transition-colors",
-                index === active ? "bg-fill text-on-fill" : "text-ink-muted hover:bg-sunken hover:text-ink",
-              )}
-            >
-              {name}
-            </button>
-          ))}
-        </div>
-      )}
     </>
   );
 }

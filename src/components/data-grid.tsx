@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -55,6 +55,8 @@ export function DataGrid({
   sortable = true,
   filter = "",
   rowLabel,
+  footerStart,
+  footerEnd,
 }: {
   columns: string[];
   rows: Cell[][];
@@ -65,8 +67,20 @@ export function DataGrid({
   filter?: string;
   /** The label in the gutter; defaults to the 1-based row number. */
   rowLabel?: (index: number) => string;
+  /** Extra controls in the status bar — sheet tabs before the counts, paging after. */
+  footerStart?: ReactNode;
+  footerEnd?: ReactNode;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
+  const [available, setAvailable] = useState(0);
+
+  useEffect(() => {
+    const element = scroller.current;
+    if (!element) return;
+    const observer = new ResizeObserver(() => setAvailable(element.clientWidth));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
   const [sort, setSort] = useState<{ column: number; descending: boolean } | null>(null);
   const [selected, setSelected] = useState<{ row: number; column: number } | null>(null);
 
@@ -114,7 +128,9 @@ export function DataGrid({
     overscan: 4,
   });
 
-  const totalWidth = columnVirtualizer.getTotalSize() + gutter;
+  // Rows run to the edge like a spreadsheet's, so a narrow table doesn't sit
+  // in a blank field.
+  const totalWidth = Math.max(columnVirtualizer.getTotalSize() + gutter, available);
   const virtualColumns = columnVirtualizer.getVirtualItems();
   const headerHeight = columnTypes ? 44 : ROW_HEIGHT + 2;
   const selectedValue = selected ? rows[selected.row]?.[selected.column] : undefined;
@@ -218,8 +234,9 @@ export function DataGrid({
         </div>
       </div>
 
-      <div className="flex h-8 shrink-0 items-center gap-3 border-t border-line bg-surface px-3">
-        <span className="readout shrink-0 text-[11px] text-ink-soft">
+      <div className="flex h-10 shrink-0 items-center gap-3 border-t border-line bg-surface px-2">
+        {footerStart}
+        <span className="readout shrink-0 px-1 text-[11px] text-ink-soft">
           {order.length === rows.length
             ? `${rows.length.toLocaleString()} rows`
             : `${order.length.toLocaleString()} of ${rows.length.toLocaleString()} rows`}
@@ -232,6 +249,7 @@ export function DataGrid({
             <span className="select-all">{cellText(selectedValue) || "—"}</span>
           </span>
         )}
+        {footerEnd && <div className="ml-auto flex shrink-0 items-center gap-1">{footerEnd}</div>}
       </div>
     </div>
   );

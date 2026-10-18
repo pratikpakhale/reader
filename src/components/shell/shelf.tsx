@@ -69,7 +69,7 @@ export function Shelf({ onPick }: { onPick?: () => void }) {
         })}
       </ul>
 
-      <div className="flex shrink-0 items-center gap-1 border-t border-line p-2 pb-safe">
+      <div className="flex h-10 shrink-0 items-center gap-1 border-t border-line px-2 pb-safe">
         <button
           type="button"
           onClick={() => pickFiles()}

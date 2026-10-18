@@ -273,8 +273,6 @@ function FileTree({
     <>
       <ViewerBar>
         {leading}
-        <SearchField value={filter} onChange={setFilter} placeholder="Filter files" />
-        <BarSpacer />
         {locked && (
           <button
             type="button"
@@ -290,6 +288,8 @@ function FileTree({
             {rows.length.toLocaleString()} {rows.length === 1 ? "match" : "matches"}
           </Readout>
         )}
+        <BarSpacer />
+        <SearchField value={filter} onChange={setFilter} placeholder="Filter files" />
       </ViewerBar>
       {banner}
       {rows.length === 0 ? (
