@@ -1,0 +1,23 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+
+# testing
+/coverage
+
+# misc
+.DS_Store
+*.pem
+
+# env files
+.env*
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# runtime assets copied out of node_modules by scripts/vendor-assets.mjs
+/public/vendor

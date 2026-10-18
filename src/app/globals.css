@@ -1,0 +1,200 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  --color-steel-50: #f3f5f3;
+  --color-steel-100: #e8ebe9;
+  --color-steel-900: #151a18;
+  --color-steel-950: #0b0f0e;
+
+  /* A document page, which is white in either theme */
+  --color-sheet: #ffffff;
+
+  /* Fixed variants, for use over a document or a scrim rather than the surface */
+  --color-seal-lamp: #35e08f;
+  --color-breach-solid: #d4342a;
+
+  --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+
+  --radius-panel: 14px;
+}
+
+/*
+ * Inline, so the utilities resolve the pointed-to variable at use time rather
+ * than freezing whatever :root held when the sheet was generated. That is what
+ * lets one attribute on <html> repaint the whole bench.
+ */
+@theme inline {
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-panel: var(--panel);
+  --color-panel-hover: var(--panel-hover);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-fill: var(--fill);
+  --color-fill-hover: var(--fill-hover);
+  --color-on-fill: var(--on-fill);
+  --color-seal-ink: var(--seal-ink);
+  --color-seal-wash: var(--seal-wash);
+  --color-breach: var(--breach);
+}
+
+@layer base {
+  /*
+   * The theme is resolved to a literal light/dark before first paint, so there
+   * is exactly one dark block here and no media-query twin to keep in sync.
+   */
+  :root,
+  :root[data-theme="light"] {
+    color-scheme: light;
+
+    --surface: #f3f5f3;
+    --sunken: #e8ebe9;
+    --panel: #ffffff;
+    --panel-hover: #f3f5f3;
+    --line: #d6dbd8;
+    --line-strong: #b7c0bb;
+    --ink: #151a18;
+    --ink-muted: #515c57;
+    --ink-soft: #6d7a74;
+    --ink-faint: #8e9a94;
+    --fill: #151a18;
+    --fill-hover: #3a4541;
+    --on-fill: #f3f5f3;
+    --seal-ink: #0a7346;
+    --seal-wash: #e6f7ef;
+    --breach: #d4342a;
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --surface: #0e1211;
+    --sunken: #161b19;
+    --panel: #191f1d;
+    --panel-hover: #232a27;
+    --line: #272f2c;
+    --line-strong: #3a4441;
+    --ink: #eef1ef;
+    --ink-muted: #a7b2ad;
+    --ink-soft: #8b9792;
+    --ink-faint: #6b7772;
+    --fill: #eef1ef;
+    --fill-hover: #cdd6d2;
+    --on-fill: #0e1211;
+    --seal-ink: #35e08f;
+    --seal-wash: #10291f;
+    --breach: #ff6f61;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--surface);
+    color: var(--ink);
+    font-family: var(--font-sans);
+  }
+
+  ::selection {
+    background-color: var(--ink);
+    color: var(--surface);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+}
+
+@layer components {
+  .nameplate {
+    font-family: var(--font-display);
+    font-variation-settings: "wdth" 118;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .headline {
+    font-family: var(--font-display);
+    font-variation-settings: "wdth" 112;
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    line-height: 0.94;
+  }
+
+  .readout {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "zero" 1;
+  }
+
+  .etch {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    line-height: 1;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@layer utilities {
+  .animate-in {
+    animation: rise 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+/*
+ * Unlayered on purpose: viewer libraries ship unlayered `:root { color-scheme }`
+ * rules, which would otherwise beat the layered theme and repaint scrollbars
+ * and form controls in the system theme instead of the chosen one.
+ */
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* pdf.js pages: drop its bitmap border shadow for one drawn in the bench's own terms. */
+.pdf-stage .pdfViewer .page {
+  border-image: none;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.12),
+    0 10px 30px -12px rgb(0 0 0 / 0.28);
+}
+.pdf-stage .pdfViewer .page .textLayer .highlight {
+  --highlight-bg-color: rgb(53 224 143 / 0.35);
+  --highlight-selected-bg-color: rgb(10 115 70 / 0.55);
+}
