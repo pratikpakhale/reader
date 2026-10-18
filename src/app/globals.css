@@ -163,8 +163,9 @@
   .animate-in {
     animation: rise 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
+  /* Never less than the element's own bottom padding; more under a home indicator. */
   .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
   }
 }
 
